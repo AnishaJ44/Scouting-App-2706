@@ -1,16 +1,37 @@
 import { Image } from 'expo-image';
 import { Platform, StyleSheet, TextInput } from 'react-native';
 
+
+import { useState } from 'react';
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { TouchableHighlight } from 'react-native-gesture-handler';
+import { Button } from 'react-native';
 import { Link } from 'expo-router';
+import { Text } from 'react-native';
 
-//import MergeLogo from './TestingApp/app/images/mergelogo.jpg'; 
 
 
-export default function HomeScreen() {
+export default function HomeScreen() { //function runs everytime something changes
+  //stores all the data from the intro screen
+  const [introData, setIntroData] = useState({
+    nameOfScout: '',
+    matchNumber: 0,
+    teamNumber: 0,
+    startLocation: '',
+  });
+
+
+  const [submittedText, setSubmittedText] = useState(''); // final data set
+
+
+  const handleSubmit = () => {
+    // sets submittedText to all the strings entered by the scout, for now just the name of the scout
+    setSubmittedText(JSON.stringify(introData));
+  }
+
   return (
     <ParallaxScrollView
       title={<ThemedText type="title">Merge Scouting</ThemedText>}
@@ -27,15 +48,34 @@ export default function HomeScreen() {
         
         <ThemedText style={{ color: '#000' }}>Welcome to Merge Scouting!</ThemedText>
         <ThemedText style={{ color: '#000' }}>Name of Scout:</ThemedText>
-        <TextInput style={{ height: 50, borderColor: 'purple', borderWidth: 5}} />
+        <TextInput value={introData.nameOfScout} 
+                  onChangeText={(input) =>
+                  setIntroData({ ...introData, nameOfScout: input })
+  }
+                  style={{ height: 50, borderColor: 'purple', borderWidth: 5}} />
         <ThemedText style={{ color: '#000' }}>Match Number:</ThemedText>
-        <TextInput style={{ height: 50, borderColor: 'purple', borderWidth: 5}} />
+        <TextInput value={introData.matchNumber} 
+                  // changes string input to int, if input is empty or not a number, sets matchNumber to 0
+                  onChangeText={(input) =>
+                  setIntroData({ ...introData, matchNumber: parseInt(input) || 0 }) 
+  }
+                  style={{ height: 50, borderColor: 'purple', borderWidth: 5}} />
         <ThemedText style={{ color: '#000' }}>Team Number:</ThemedText>
-        <TextInput style={{ height: 50, borderColor: 'purple', borderWidth: 5}} />
+        <TextInput value={introData.teamNumber} 
+                  onChangeText={(input) =>
+                  setIntroData({ ...introData, teamNumber: parseInt(input) || 0 })}
+                  style={{ height: 50, borderColor: 'purple', borderWidth: 5}} />
+
         <Image source={require('../images/frc2026rebuiltmap.png')} style={{ width: 1000, height: 500 }}></Image>
          <ThemedText style={{ color: '#000' }}>Start Location:</ThemedText>
-        <TextInput style={{ height: 50, borderColor: 'purple', borderWidth: 5,}} />
-
+        <TextInput value={introData.startLocation} 
+                  onChangeText={(input) =>
+                  setIntroData({ ...introData, startLocation: input })}
+                  style={{ height: 50, borderColor: 'purple', borderWidth: 5}} />
+        
+        <Button title="Submit" onPress={handleSubmit} />
+        {/* prints submittedText */}
+        <Text style={{ marginTop: 20, color: '#000' }}>You submitted: {submittedText} </Text>
       </ThemedView>
 
       <ThemedView style={styles.stepContainer}>
@@ -50,6 +90,8 @@ export default function HomeScreen() {
     </ParallaxScrollView>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   titleContainer: {
