@@ -1,17 +1,13 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet, TextInput } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 
-
-import { useState } from 'react';
-import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { TouchableHighlight } from 'react-native-gesture-handler';
-import { Button } from 'react-native';
 import { Link } from 'expo-router';
-import { Text } from 'react-native';
-
+import { useState } from 'react';
+import { Button, Text } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 
 
 export default function HomeScreen() { //function runs everytime something changes
@@ -25,12 +21,15 @@ export default function HomeScreen() { //function runs everytime something chang
 
 
   const [submittedText, setSubmittedText] = useState(''); // final data set
+  const [showQR, setShowQR] = useState(false);
 
 
   const handleSubmit = () => {
     // sets submittedText to all the strings entered by the scout, for now just the name of the scout
     setSubmittedText(JSON.stringify(introData));
-  }
+    setShowQR(true);
+  };
+
 
   return (
     <ParallaxScrollView
@@ -78,6 +77,17 @@ export default function HomeScreen() { //function runs everytime something chang
         <Text style={{ marginTop: 20, color: '#000' }}>You submitted: {submittedText} </Text>
       </ThemedView>
 
+      {showQR && submittedText !== '' && (
+          <View style={styles.qrContainer}>
+            <ThemedText style={{color: '#000', marginBottom: 10}}>Scan for Drive Coach:</ThemedText>
+            <QRCode 
+              value={submittedText}
+              size={200}
+              color="black"
+              backgroundColor="white"
+            />
+          </View>)}
+
       <ThemedView style={styles.stepContainer}>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
@@ -112,7 +122,15 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
   },
+
+  container:{
+    flex:1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  }
 });
+
+
 
 
 

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert, ScrollView, StyleSheet, Switch } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Alert, Button, ScrollView, StyleSheet, Switch, Text, TextInput } from 'react-native';
 
 export default function ScoutScreen() {
   const [team, setTeam] = useState('');
