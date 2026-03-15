@@ -8,6 +8,8 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Button, Text } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
+import { Buffer } from 'buffer';
+
 
 
 export default function HomeScreen() { //function runs everytime something changes
@@ -21,14 +23,22 @@ export default function HomeScreen() { //function runs everytime something chang
 
 
   const [submittedText, setSubmittedText] = useState(''); // final data set
-  const [showQR, setShowQR] = useState(false);
-
+  const [submittedTextCSV, setSubmittedTextCSV] = useState('');
+  const [showQRCSV, setShowQRCSV] = useState(false);
 
   const handleSubmit = () => {
-    // sets submittedText to all the strings entered by the scout, for now just the name of the scout
+
     setSubmittedText(JSON.stringify(introData));
-    setShowQR(true);
+
+    // takes out all the values from introData and joins them with commas to create a csv string
+    const values = Object.values(introData);
+    const csv = values.join(","); // converts introData to csv format, for example: "John Doe,1,1234,Left"
+
+    setSubmittedTextCSV(csv); // sets the csv string to submittedTextCSV, which is used to generate the QR code
+
+    setShowQRCSV(true); // shows the QR code, which is hidden by default, after the submit button is pressed
   };
+  
 
 
   return (
@@ -77,12 +87,12 @@ export default function HomeScreen() { //function runs everytime something chang
         <Text style={{ marginTop: 20, color: '#000' }}>You submitted: {submittedText} </Text>
       </ThemedView>
 
-      {showQR && submittedText !== '' && (
+        {showQRCSV && (
           <View style={styles.qrContainer}>
             <ThemedText style={{color: '#000', marginBottom: 10}}>Scan for Drive Coach:</ThemedText>
             <QRCode 
-              value={submittedText}
-              size={200}
+              value={submittedTextCSV}
+              size={400}
               color="black"
               backgroundColor="white"
             />
