@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { Button, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
+
+
 // Reusable CheckboxGroup
 const CheckboxGroup = ({ options, selectedValues, onToggle }) => (
   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginVertical: 8 }}>
@@ -44,7 +46,7 @@ export default function HomeScreen() {
     startLocation: '',
     shooterScale: 1,
     accuracyScale: 1,
-    shootLocationTeleop: '',
+    shootingLocationTeleop: '',
     shootLocationAuto: '',
     bump: false,
     trench: false,
@@ -54,8 +56,6 @@ export default function HomeScreen() {
     typeOfRobot: [],
     endNotes: '',
     autoMortality: '',
-    shootingLocationTeleop: '',
-    shootingLocationAuto: '',
     underTrench: '',
     overBump: '',
     climbOptions: '',
@@ -92,11 +92,48 @@ export default function HomeScreen() {
     }
     setScoutingData({ ...scoutingData, [field]: currentItems });
   };
+  
+  const fieldOrder = [
+    'nameOfScout',
+    'matchNumber',
+    'teamNumber',
+
+    // AUTO
+    'startLocation',
+    'autoMortality',
+    'underTrench',
+    'overBump',
+    'intakeLocations',
+    'shootLocationAuto',
+    'climbOptions',
+    'autoPath',
+    'autoNotes',
+
+    // TELEOP
+    'shooterScale',
+    'accuracyScale',
+    'shootingLocationTeleop',
+    'bump',
+    'trench',
+    'intakeLocation',
+    'inactivePeriod',
+
+    // ENDGAME
+    'actualClimb',
+    'typeOfRobot',
+    'endNotes'
+  ]
 
   const handleSubmit = () => {
     setSubmittedText(JSON.stringify(scoutingData));
-    const values = Object.values(scoutingData).map((v) => (Array.isArray(v) ? v.join('|') : v));
+
+    const values = fieldOrder.map((key) => {
+      const value = scoutingData[key];
+      return Array.isArray(value) ? value.join('|') : value;
+    });
+
     const csv = values.join(',');
+
     setSubmittedTextCSV(csv);
     setShowQRCSV(true);
   };
@@ -183,9 +220,9 @@ export default function HomeScreen() {
            <ThemedText style={styles.label}>Shooting Location(s):</ThemedText>
           <TextInput
             placeholder="e.g., Against Hub, From Trench"
-            value={scoutingData.shootLocationAuto || scoutingData.shootingLocationAuto}
+            value={scoutingData.shootLocationAuto}
             onChangeText={(input) =>
-              setScoutingData({ ...scoutingData, shootLocationAuto: input, shootingLocationAuto: input })
+              setScoutingData({ ...scoutingData, shootLocationAuto: input})
             }
             style={styles.input}
           />
@@ -231,9 +268,9 @@ export default function HomeScreen() {
           <ThemedText style={styles.label}>Shooting Location(s):</ThemedText>
           <TextInput
             placeholder="e.g., Against Hub, From Trench"
-            value={scoutingData.shootLocationTeleop || scoutingData.shootingLocationTeleop}
+            value={scoutingData.shootingLocationTeleop}
             onChangeText={(input) =>
-              setScoutingData({ ...scoutingData, shootLocationTeleop: input, shootingLocationTeleop: input })
+              setScoutingData({ ...scoutingData, shootingLocationTeleop: input, shootingLocationTeleop: input })
             }
             style={styles.input}
           />
@@ -304,7 +341,7 @@ export default function HomeScreen() {
             </View>
           )}
 
-          <ThemedText style={{ marginTop: 20, color: '#000' }}>You submitted: {submittedText}</ThemedText>
+          <ThemedText style={{ marginTop: 20, color: '#000' }}>You submitted: {submittedTextCSV}</ThemedText>
         </ThemedView>
       </SafeAreaView>
     </ParallaxScrollView>
