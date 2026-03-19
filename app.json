@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "TestingApp",
-    "slug": "TestingApp",
+    "name": "MergeScouting",
+    "slug": "MergeScouting",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "testingapp",
+    "scheme": "mergescouting",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.papaya0.TestingApp",
+      "bundleIdentifier": "com.papaya0.MergeScouting",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -23,7 +23,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.papaya0.MergeScouting"
     },
     "web": {
       "output": "static",

@@ -1,0 +1,133 @@
+**Privacy Policy for Merge 2706 Scouting App**
+
+**Effective Date:** March 18, 2026
+
+Merge 2706 (“we,” “our,” or “us”) operates the Merge 2706 Scouting App (the “App”), built using React Native. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our App. This policy is intended to comply with applicable laws and App Store requirements.
+
+---
+
+### 1. Information We Collect
+
+We may collect the following types of information:
+
+**a. Personal Information**
+
+* Name (if provided)
+* Email address (if provided)
+* Team or user identifiers
+
+**b. Usage Data**
+
+* Scouting data entered by users (e.g., match performance, notes)
+* App interaction data (features used, timestamps)
+
+**c. Device Information**
+
+* Device type and model
+* Operating system version
+* Anonymous identifiers (if applicable)
+
+**d. Media (if applicable)**
+
+* Photos or videos uploaded by users (only with permission)
+
+---
+
+### 2. How We Use Your Information
+
+We use collected information to:
+
+* Provide and maintain the App’s functionality
+* Store and process scouting data
+* Improve app performance and user experience
+* Troubleshoot issues and provide support
+* Ensure compliance with competition or team requirements
+
+---
+
+### 3. Data Sharing and Disclosure
+
+We do **not sell your personal information**.
+
+We may share information:
+
+* With team members or authorized users within your organization
+* With service providers (e.g., cloud storage) strictly for app functionality
+* If required by law or to protect legal rights
+
+---
+
+### 4. Data Storage and Security
+
+* Data may be stored locally on your device and/or securely in cloud services.
+* We implement reasonable safeguards to protect your data.
+* However, no method of transmission or storage is 100% secure.
+
+---
+
+### 5. User Permissions
+
+The App may request permissions such as:
+
+* Camera (for scouting images/videos)
+* Storage (to save/load scouting data)
+
+Permissions are only used for core app functionality and can be managed in your device settings.
+
+---
+
+### 6. Children’s Privacy
+
+This App is intended for use by team members and participants, including minors under supervision. We do not knowingly collect personal data from children without appropriate consent from a parent, guardian, or team authority.
+
+---
+
+### 7. Your Rights
+
+Depending on your location, you may have the right to:
+
+* Access your data
+* Request correction or deletion
+* Withdraw consent
+
+To exercise these rights, contact us at: [Insert Contact Email]
+
+---
+
+### 8. Third-Party Services
+
+The App may use third-party services (e.g., analytics or cloud storage). These services have their own privacy policies, and we encourage you to review them.
+
+---
+
+### 9. Changes to This Privacy Policy
+
+We may update this Privacy Policy from time to time. Changes will be reflected with a new “Effective Date.” Continued use of the App constitutes acceptance of the updated policy.
+
+---
+
+### 10. Contact Us
+
+If you have questions or concerns about this Privacy Policy, contact us:
+
+**Email:** [Insert Email Address]
+**Team/Organization:** Merge 2706
+
+---
+
+### App Store Compliance Notes
+
+This policy is designed to meet Apple App Store requirements, including:
+
+* Transparency about data collection
+* Disclosure of third-party services
+* Clear explanation of data usage
+
+You may need to further specify:
+
+* Whether data is linked to users
+* Whether tracking is used (e.g., for advertising)
+
+---
+
+**By using the Merge 2706 Scouting App, you agree to this Privacy Policy.**
