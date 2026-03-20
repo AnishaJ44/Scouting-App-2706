@@ -38,6 +38,11 @@ const CheckboxGroup = ({ options, selectedValues, onToggle }) => (
 );
 
 export default function HomeScreen() {
+
+  if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js');
+  }
+
   const [scoutingData, setScoutingData] = useState({
     // First program fields
     nameOfScout: '',
