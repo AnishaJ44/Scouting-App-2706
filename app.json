@@ -52,8 +52,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "f07d017c-392a-492a-8ffb-1f395d3af0c4"
+        "projectId": "08da1bd5-40fb-4911-abf6-b2bd6fc2fb15"
       }
-    }
+    },
+    "owner": "papaya0"
   }
 }
