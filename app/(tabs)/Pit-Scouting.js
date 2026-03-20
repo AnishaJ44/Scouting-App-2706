@@ -1,8 +1,8 @@
 import { Image } from 'expo-image';
-import { Button, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
+import { Button, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
@@ -120,7 +120,7 @@ export default function PitScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
 
         <ThemedView style={styles.stepContainer}>
-          <ThemedText style={styles.title}>Pit Scouting</ThemedText>
+          <ThemedText style={styles.title}>Pit-scouting</ThemedText>
 
           {/* TEAM NUMBER */}
           <ThemedText style={styles.label}>Team Number:</ThemedText>
