@@ -5,8 +5,18 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useEffect } from 'react';
+
 
 export default function TabLayout() {
+useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/Scouting-App-2706/service-worker.js', {
+        scope: '/Scouting-App-2706/'
+      });
+    }
+  }, []);
+
   const colorScheme = useColorScheme();
 
   return (
