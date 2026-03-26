@@ -28,6 +28,7 @@ jobs:
         run: npx expo export --platform web
         env:
           NODE_ENV: production
+          PUBLIC_URL: /Scouting-App-2706
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

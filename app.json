@@ -30,6 +30,7 @@
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png",
+      "publicPath": "/Scouting-App-2706",
       "build": {
         "publicPath": "/Scouting-App-2706/"
       }
