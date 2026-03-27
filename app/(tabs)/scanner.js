@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Text, View, Button, StyleSheet, ScrollView } from "react-native";
+import { Text, View, Button, StyleSheet, ScrollView, Platform } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -49,12 +49,36 @@ async function readCSV() {
 }
 
 async function exportCSV() {
-  if (!(await Sharing.isAvailableAsync())) {
-    alert("Sharing not available");
+  const fileInfo = await FileSystem.getInfoAsync(path);
+  if (!fileInfo.exists) {
+    alert("No data to export yet.");
     return;
   }
 
-  await Sharing.shareAsync(path);
+  const content = await FileSystem.readAsStringAsync(path, { encoding: 'utf8' });
+
+  if (Platform.OS === 'web') {
+    // Browser download — creates a temporary link and clicks it
+    const blob = new Blob([content], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'scanned_data.csv';
+    a.click();
+    URL.revokeObjectURL(url); // clean up
+    return;
+  }
+
+  // Android / iOS fallback (your existing logic)
+  if (Platform.OS === 'android') {
+    // ... your android code
+  } else {
+    await Sharing.shareAsync(path, {
+      mimeType: 'text/csv',
+      dialogTitle: 'Save CSV File',
+      UTI: 'public.comma-separated-values-text',
+    });
+  }
 }
 
 async function clearCSV() {
