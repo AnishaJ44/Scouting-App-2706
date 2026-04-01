@@ -50,6 +50,7 @@ export default function HomeScreen() {
     startLocation: '',
     shooterScale: 1,
     accuracyScale: 1,
+    defenseScale: 1,
     shootingLocationTeleop: '',
     shootLocationAuto: '',
     bump: false,
@@ -128,6 +129,7 @@ export default function HomeScreen() {
     // ENDGAME
     'actualClimb',
     'typeOfRobot',
+    'defenseScale',
     'penaltyNotes',
     'endNotes',
   ]
@@ -373,6 +375,13 @@ export default function HomeScreen() {
             options={typeOfRobotOptions}
             selectedValues={scoutingData.typeOfRobot}
             onToggle={(option) => handleMultiSelect('typeOfRobot', option)}
+          />
+
+          <ThemedText style={styles.label}>If they played defense, how good were they?:</ThemedText>
+          <CheckboxGroup
+            options={[1, 2, 3, 4, 5].map(String)}
+            selectedValues={[scoutingData.defenseScale.toString()]}
+            onToggle={(option) => handleSingleSelect('defenseScale', parseInt(option))}
           />
 
 
