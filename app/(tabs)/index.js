@@ -68,6 +68,7 @@ export default function HomeScreen() {
     autoPath: '',
     autoNotes: '',
     intakeLocations: [],
+    penaltyPoints: 0,
     penaltyNotes: '',
   });
 
@@ -130,6 +131,7 @@ export default function HomeScreen() {
     'actualClimb',
     'typeOfRobot',
     'defenseScale',
+    'penaltyPoints',
     'penaltyNotes',
     'endNotes',
   ]
@@ -149,6 +151,37 @@ export default function HomeScreen() {
 
   return stringValue;
 };
+
+  const handleClear = () => {
+    setScoutingData({
+      nameOfScout: '',
+      matchNumber: 0,
+      teamNumber: 0,
+      startLocation: '',
+      shooterScale: 1,
+      accuracyScale: 1,
+      defenseScale: 1,
+      shootingLocationTeleop: '',
+      shootLocationAuto: '',
+      bump: false,
+      trench: false,
+      intakeLocation: [],
+      inactivePeriod: '',
+      actualClimb: '',
+      typeOfRobot: [],
+      endNotes: '',
+      autoMortality: false,
+      teleopMortality: false,
+      underTrench: false,
+      overBump: false,
+      climbOptions: '',
+      autoPath: '',
+      autoNotes: '',
+      intakeLocations: [],
+      penaltyPoints: 0,
+      penaltyNotes: '',
+    });
+  };
 
 
   const handleSubmit = async () => {
@@ -384,10 +417,18 @@ export default function HomeScreen() {
             onToggle={(option) => handleSingleSelect('defenseScale', parseInt(option))}
           />
 
+       <ThemedText style={styles.label}>Penalty Points:</ThemedText>
+          <TextInput
+            keyboardType="numeric"
+            value={scoutingData.penaltyPoints.toString()}
+            onChangeText={(input) => setScoutingData({ ...scoutingData, penaltyPoints: parseInt(input) || 0 })}
+            style={styles.input}
+          />
+
 
         <ThemedText style={styles.label}>Penalty?:</ThemedText>
           <TextInput
-          placeholder='Indicate penalty points, reason for penalty'
+          placeholder='Indicate reason for penalty'
             value={scoutingData.penaltyNotes}
             onChangeText={(input) => setScoutingData({ ...scoutingData, penaltyNotes: input })}
             style={styles.input}
@@ -415,6 +456,10 @@ export default function HomeScreen() {
           )}
 
           <ThemedText style={{ marginTop: 20, color: '#000' }}>You submitted: {submittedTextCSV}</ThemedText>
+
+          <Button title="Clear" color="purple" onPress={handleClear} />
+
+
         </ThemedView>
       </SafeAreaView>
     </ParallaxScrollView>
