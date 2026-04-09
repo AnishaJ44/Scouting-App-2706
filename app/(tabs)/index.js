@@ -9,7 +9,7 @@ import {
 } from '@/lib/googleSheets';
 import Constants from 'expo-constants';
 import { Image } from 'expo-image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Alert, Button, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
@@ -53,14 +53,15 @@ const CheckboxGroup = ({ options, selectedValues, onToggle }) => (
 );
 
 export default function HomeScreen() {
-  // if ('serviceWorker' in navigator) {
-  // navigator.serviceWorker.register('/service-worker.js');
-  // }
+
+
 
   const [scoutingData, setScoutingData] = useState({
     // First program fields
     nameOfScout: '',
     matchNumber: 0,
+    alliance: [],
+    position: [],
     teamNumber: 0,
     startLocation: '',
     shooterScale: 1,
@@ -83,15 +84,41 @@ export default function HomeScreen() {
     autoPath: '',
     autoNotes: '',
     intakeLocations: [],
+    penaltyPoints: 0,
     penaltyNotes: '',
   });
+
+  useEffect(() => {
+  const fetchTeam = async () => {
+    if (!scoutingData.matchNumber || !scoutingData.alliance.length || !scoutingData.position.length) return;
+
+    const eventKey = '2024nyny'; // ← change this to your event key
+    const res = await fetch(`https://www.thebluealliance.com/api/v3/event/${eventKey}/matches`, {
+      headers: { 'X-TBA-Auth-Key': process.env.EXPO_PUBLIC_TBA_API_KEY }
+    });
+    const matches = await res.json();
+
+    const match = matches.find(m => m.match_number === scoutingData.matchNumber && m.comp_level === 'qm');
+    if (!match) return;
+
+    const alliance = scoutingData.alliance[0].toLowerCase();
+    const positionIndex = parseInt(scoutingData.position[0]) - 1;
+    const teamKey = match.alliances[alliance].team_keys[positionIndex];
+    const teamNumber = parseInt(teamKey.replace('frc', ''));
+
+    setScoutingData(prev => ({ ...prev, teamNumber }));
+  };
+
+  fetchTeam();
+}, [scoutingData.matchNumber, scoutingData.alliance, scoutingData.position]);
 
   const [submittedText, setSubmittedText] = useState('');
   const [submittedTextCSV, setSubmittedTextCSV] = useState('');
   const [showQRCSV, setShowQRCSV] = useState(false);
 
   // Options
-  const yesNoOptions = ['Yes', 'No'];
+  const allianceOptions = ['Red', 'Blue'];
+  const positionOptions = ['1', '2', '3'];
   const startLocationOptions = ['At Hub', 'Depot Side Trench', 'Outpost Side Trench', 'Depot Side Bump', 'Outpost Side Bump'];
   const intakeOptions = ['Ground', 'Outpost'];
   const intakeLocationsOptions = ['Outpost', 'Depot', 'Neutral'];
@@ -115,6 +142,57 @@ export default function HomeScreen() {
     setScoutingData({ ...scoutingData, [field]: currentItems });
   };
   
+  const fieldOrder = [
+    'nameOfScout',
+    'matchNumber',
+    'teamNumber',
+
+    // AUTO
+    'startLocation',
+    'autoMortality',
+    'underTrench',
+    'overBump',
+    'intakeLocations',
+    'shootLocationAuto',
+    'climbOptions',
+    'autoPath',
+    'autoNotes',
+
+    // TELEOP
+    'shooterScale',
+    'accuracyScale',
+    'shootingLocationTeleop',
+    'teleopMortality',
+    'bump',
+    'trench',
+    'intakeLocation',
+    'inactivePeriod',
+
+    // ENDGAME
+    'actualClimb',
+    'typeOfRobot',
+    'defenseScale',
+    'penaltyNotes',
+    'endNotes',
+  ]
+
+  const escapeCSV = (value) => {
+  if (value === null || value === undefined) return '';
+
+  let stringValue = String(value);
+
+  // Escape double quotes by doubling them
+  stringValue = stringValue.replace(/"/g, '""');
+
+  // Wrap in quotes if it contains comma, newline, or quotes
+  if (/[",\n]/.test(stringValue)) {
+    stringValue = `"${stringValue}"`;
+  }
+
+  return stringValue;
+};
+
+
   const handleSubmit = async () => {
     setSubmittedText(JSON.stringify(scoutingData));
 
@@ -169,13 +247,26 @@ export default function HomeScreen() {
             style={styles.input}
           />
 
+          <ThemedText style={styles.label}>Alliance:</ThemedText>
+          <CheckboxGroup
+            options={allianceOptions}
+            selectedValues={scoutingData.alliance}
+            onToggle={(option) => handleSingleSelect('alliance', option)}
+          />
+
+          <ThemedText style={styles.label}>Position:</ThemedText>
+          <CheckboxGroup
+            options={positionOptions}
+            selectedValues={scoutingData.position}
+            onToggle={(option) => handleSingleSelect('position', option)}
+          />
+
           <ThemedText style={styles.label}>Team Number:</ThemedText>
           <TextInput
-            keyboardType="numeric"
-            value={scoutingData.teamNumber.toString()}
-            onChangeText={(input) => setScoutingData({ ...scoutingData, teamNumber: parseInt(input) || 0 })}
-            style={styles.input}
-          />
+              value={scoutingData.teamNumber.toString()}
+              editable={false}
+              style={[styles.input, { backgroundColor: '#f0f0f0' }]}
+            />
 
           <Image source={require('../images/frc2026rebuiltmap.png')} style={{ width: '100%', height: 200, resizeMode: 'contain' }} />
 
@@ -341,10 +432,18 @@ export default function HomeScreen() {
             onToggle={(option) => handleSingleSelect('defenseScale', parseInt(option))}
           />
 
+       <ThemedText style={styles.label}>Penalty Points:</ThemedText>
+          <TextInput
+            keyboardType="numeric"
+            value={scoutingData.penaltyPoints.toString()}
+            onChangeText={(input) => setScoutingData({ ...scoutingData, penaltyPoints: parseInt(input) || 0 })}
+            style={styles.input}
+          />
+
 
         <ThemedText style={styles.label}>Penalty?:</ThemedText>
           <TextInput
-          placeholder='Indicate penalty points, reason for penalty'
+          placeholder='Indicate reason for penalty'
             value={scoutingData.penaltyNotes}
             onChangeText={(input) => setScoutingData({ ...scoutingData, penaltyNotes: input })}
             style={styles.input}
@@ -372,6 +471,10 @@ export default function HomeScreen() {
           )}
 
           <ThemedText style={{ marginTop: 20, color: '#000' }}>You submitted: {submittedTextCSV}</ThemedText>
+
+          <Button title="Clear" color="purple" onPress={handleClear} />
+
+
         </ThemedView>
       </SafeAreaView>
     </ParallaxScrollView>
