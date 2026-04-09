@@ -180,6 +180,8 @@ export default function HomeScreen() {
     setScoutingData({
       matchNumber: 0,
       teamNumber: 0,
+      alliance: [],
+      position: [],
       startLocation: '',
       shooterScale: 1,
       accuracyScale: 1,
