@@ -54,10 +54,7 @@ const CheckboxGroup = ({ options, selectedValues, onToggle }) => (
 
 export default function HomeScreen() {
 
-
-
-  const [scoutingData, setScoutingData] = useState({
-    // First program fields
+  const initialScoutingData = {
     nameOfScout: '',
     matchNumber: 0,
     alliance: [],
@@ -86,7 +83,12 @@ export default function HomeScreen() {
     intakeLocations: [],
     penaltyPoints: 0,
     penaltyNotes: '',
-  });
+  };
+
+  const [scoutingData, setScoutingData] = useState(initialScoutingData);
+  const [submittedText, setSubmittedText] = useState('');
+  const [submittedTextCSV, setSubmittedTextCSV] = useState('');
+  const [showQRCSV, setShowQRCSV] = useState(false);
 
   useEffect(() => {
   const fetchTeam = async () => {
@@ -112,10 +114,6 @@ export default function HomeScreen() {
   fetchTeam();
 }, [scoutingData.matchNumber, scoutingData.alliance, scoutingData.position]);
 
-  const [submittedText, setSubmittedText] = useState('');
-  const [submittedTextCSV, setSubmittedTextCSV] = useState('');
-  const [showQRCSV, setShowQRCSV] = useState(false);
-
   // Options
   const allianceOptions = ['Red', 'Blue'];
   const positionOptions = ['1', '2', '3'];
@@ -129,6 +127,13 @@ export default function HomeScreen() {
   // Handlers
   const handleSingleSelect = (field, value) => {
     setScoutingData({ ...scoutingData, [field]: value });
+  };
+
+  const handleClear = () => {
+    setScoutingData(initialScoutingData);
+    setSubmittedText('');
+    setSubmittedTextCSV('');
+    setShowQRCSV(false);
   };
 
   const handleMultiSelect = (field, value) => {
