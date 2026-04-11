@@ -1,10 +1,27 @@
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import {
+  MATCH_SCOUTING_FIELD_ORDER,
+  buildMatchSheetAppendPayload,
+  escapeCsvCell,
+  submitMatchScoutingToSheet,
+} from '@/lib/googleSheets';
+import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { useState, useEffect } from 'react';
-import { Button, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Button, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
+
+const extra =
+  Constants.expoConfig?.extra ??
+  Constants.manifest2?.extra ??
+  (Constants.manifest && typeof Constants.manifest === 'object' ? Constants.manifest.extra : null) ??
+  {};
+const GOOGLE_SCRIPT_URL =
+  extra.googleScriptUrl ?? process.env.EXPO_PUBLIC_GOOGLE_SCRIPT_URL ?? '';
+const SPREADSHEET_ID = extra.googleSpreadsheetId ?? process.env.EXPO_PUBLIC_GOOGLE_SPREADSHEET_ID ?? '';
+const MATCH_SHEET_NAME = extra.googleMatchSheetName ?? 'Sheet1';
 
 // Reusable CheckboxGroup
 const CheckboxGroup = ({ options, selectedValues, onToggle }) => (
@@ -36,11 +53,7 @@ const CheckboxGroup = ({ options, selectedValues, onToggle }) => (
 );
 
 export default function HomeScreen() {
-
-
-
   const [scoutingData, setScoutingData] = useState({
-    // First program fields
     nameOfScout: '',
     matchNumber: 0,
     alliance: [],
@@ -71,49 +84,53 @@ export default function HomeScreen() {
     penaltyNotes: '',
   });
 
+  // TBA auto-fill team number (File 2's cleaner version with error handling)
   useEffect(() => {
-  const fetchTeam = async () => {
-    if (!scoutingData.matchNumber || !scoutingData.alliance || !scoutingData.position) return;
+    const fetchTeam = async () => {
+      if (!scoutingData.matchNumber || !scoutingData.alliance || !scoutingData.position) return;
 
-    try {
-      const eventKey = '2024nyny';
-      const res = await fetch(`https://www.thebluealliance.com/api/v3/event/${eventKey}/matches`, {
-        headers: { 'X-TBA-Auth-Key': process.env.EXPO_PUBLIC_TBA_API_KEY }
-      });
+      try {
+        const eventKey = '2024nyny'; // ← change this to your event key
+        const res = await fetch(`https://www.thebluealliance.com/api/v3/event/${eventKey}/matches`, {
+          headers: { 'X-TBA-Auth-Key': process.env.EXPO_PUBLIC_TBA_API_KEY }
+        });
 
-      const matches = await res.json();
-      if (!Array.isArray(matches)) return;
+        const matches = await res.json();
+        if (!Array.isArray(matches)) return;
 
-      const match = matches.find(m => m.match_number === parseInt(scoutingData.matchNumber) && m.comp_level === 'qm');
-      if (!match) return;
+        const match = matches.find(
+          m => m.match_number === parseInt(scoutingData.matchNumber) && m.comp_level === 'qm'
+        );
+        if (!match) return;
 
-      // Handle alliance whether it's an array ["Red"] or a string "Red"
-      const allianceRaw = Array.isArray(scoutingData.alliance)
-        ? scoutingData.alliance[0]
-        : scoutingData.alliance;
-      const alliance = allianceRaw.toLowerCase(); // "red" or "blue"
+        const allianceRaw = Array.isArray(scoutingData.alliance)
+          ? scoutingData.alliance[0]
+          : scoutingData.alliance;
+        const alliance = allianceRaw.toLowerCase();
 
-      // Handle position whether it's an array ["1"] or a string "1"
-      const positionRaw = Array.isArray(scoutingData.position)
-        ? scoutingData.position[0]
-        : scoutingData.position;
-      const positionIndex = parseInt(positionRaw) - 1;
+        const positionRaw = Array.isArray(scoutingData.position)
+          ? scoutingData.position[0]
+          : scoutingData.position;
+        const positionIndex = parseInt(positionRaw) - 1;
 
-      if (!match.alliances[alliance]) return;
+        if (!match.alliances[alliance]) return;
 
-      const teamKey = match.alliances[alliance].team_keys[positionIndex];
-      if (!teamKey) return;
+        const teamKey = match.alliances[alliance].team_keys[positionIndex];
+        if (!teamKey) return;
 
-      const teamNumber = parseInt(teamKey.replace('frc', ''));
-      setScoutingData(prev => ({ ...prev, teamNumber }));
+        const teamNumber = parseInt(teamKey.replace('frc', ''));
+        setScoutingData(prev => ({ ...prev, teamNumber }));
+      } catch (err) {
+        // silently fail
+      }
+    };
 
-    } catch (err) {
-      // silently fail
-    }
-  };
+    fetchTeam();
+  }, [scoutingData.matchNumber, scoutingData.alliance, scoutingData.position]);
 
-  fetchTeam();
-}, [scoutingData.matchNumber, scoutingData.alliance, scoutingData.position]);
+  const [submittedText, setSubmittedText] = useState('');
+  const [submittedTextCSV, setSubmittedTextCSV] = useState('');
+  const [showQRCSV, setShowQRCSV] = useState(false);
 
   // Options
   const allianceOptions = ['Red', 'Blue'];
@@ -140,60 +157,10 @@ export default function HomeScreen() {
     }
     setScoutingData({ ...scoutingData, [field]: currentItems });
   };
-  
-  const fieldOrder = [
-    'nameOfScout',
-    'matchNumber',
-    'teamNumber',
-
-    // AUTO
-    'startLocation',
-    'autoMortality',
-    'underTrench',
-    'overBump',
-    'intakeLocations',
-    'shootLocationAuto',
-    'climbOptions',
-    'autoPath',
-    'autoNotes',
-
-    // TELEOP
-    'shooterScale',
-    'accuracyScale',
-    'shootingLocationTeleop',
-    'teleopMortality',
-    'bump',
-    'trench',
-    'intakeLocation',
-    'inactivePeriod',
-
-    // ENDGAME
-    'actualClimb',
-    'typeOfRobot',
-    'defenseScale',
-    'penaltyPoints',
-    'penaltyNotes',
-    'endNotes',
-  ]
-
-  const escapeCSV = (value) => {
-  if (value === null || value === undefined) return '';
-
-  let stringValue = String(value);
-
-  // Escape double quotes by doubling them
-  stringValue = stringValue.replace(/"/g, '""');
-
-  // Wrap in quotes if it contains comma, newline, or quotes
-  if (/[",\n]/.test(stringValue)) {
-    stringValue = `"${stringValue}"`;
-  }
-
-  return stringValue;
-};
 
   const handleClear = () => {
     setScoutingData({
+      nameOfScout: '',
       matchNumber: 0,
       teamNumber: 0,
       alliance: [],
@@ -222,37 +189,33 @@ export default function HomeScreen() {
       penaltyPoints: 0,
       penaltyNotes: '',
     });
+    setSubmittedText('');
+    setSubmittedTextCSV('');
+    setShowQRCSV(false);
   };
-
 
   const handleSubmit = async () => {
     setSubmittedText(JSON.stringify(scoutingData));
 
-    try {
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain",
-      },
-      body: JSON.stringify(scoutingData),
+    // Submit to Google Sheet
+    const payload = buildMatchSheetAppendPayload(scoutingData, SPREADSHEET_ID, MATCH_SHEET_NAME);
+    const sheetResult = await submitMatchScoutingToSheet(GOOGLE_SCRIPT_URL, payload);
+    if (sheetResult.ok) {
+      console.log('Submitted!');
+      Alert.alert('Sheet', 'Row sent to Google Sheet.');
+    } else {
+      console.error('Submission failed:', sheetResult.error);
+      Alert.alert('Sheet error', sheetResult.error);
+    }
+
+    // Build CSV for QR code using MATCH_SCOUTING_FIELD_ORDER from googleSheets lib
+    const values = MATCH_SCOUTING_FIELD_ORDER.map((key) => {
+      const value = scoutingData[key];
+      const processed = Array.isArray(value) ? value.join('|') : value;
+      return escapeCsvCell(processed);
     });
 
-    const result = await response.json();
-
-    if (result.status === "success") {
-      console.log("Submitted!");
-    }
-  } catch (error) {
-    console.error("Submission failed:", error);
-  }
-
-  const values = fieldOrder.map((key) => {
-  const value = scoutingData[key];
-  const processed = Array.isArray(value) ? value.join('|') : value;
-  return escapeCSV(processed);});
-
     const csv = values.join(',');
-
     setSubmittedTextCSV(csv);
     setShowQRCSV(true);
   };
@@ -270,7 +233,7 @@ export default function HomeScreen() {
     >
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
         <ThemedView style={styles.stepContainer}>
-          {/* First program inputs */}
+
           <ThemedText style={styles.label}>Name of Scout:</ThemedText>
           <TextInput
             value={scoutingData.nameOfScout}
@@ -302,17 +265,15 @@ export default function HomeScreen() {
 
           <ThemedText style={styles.label}>Team Number:</ThemedText>
           <TextInput
-              value={scoutingData.teamNumber.toString()}
-              editable={false}
-              style={[styles.input, { backgroundColor: '#f0f0f0' }]}
-            />
+            value={scoutingData.teamNumber.toString()}
+            editable={false}
+            style={[styles.input, { backgroundColor: '#f0f0f0' }]}
+          />
 
           <Image source={require('../images/frc2026rebuiltmap.png')} style={{ width: '100%', height: 200, resizeMode: 'contain' }} />
 
+          <ThemedText style={styles.titleContainer}>Auto</ThemedText>
 
-        <ThemedText style={styles.titleContainer}>Auto</ThemedText>
-
-        {/* AUTO INPUTS */}
           <ThemedText style={styles.label}>Start Location:</ThemedText>
           <CheckboxGroup
             options={startLocationOptions}
@@ -326,7 +287,6 @@ export default function HomeScreen() {
             selectedValues={scoutingData.autoMortality ? ['Yes'] : []}
             onToggle={() => setScoutingData({ ...scoutingData, autoMortality: !scoutingData.autoMortality })}
           />
-          
 
           <ThemedText style={styles.label}>Under Trench:</ThemedText>
           <CheckboxGroup
@@ -341,21 +301,19 @@ export default function HomeScreen() {
             selectedValues={scoutingData.overBump ? ['Yes'] : []}
             onToggle={() => setScoutingData({ ...scoutingData, overBump: !scoutingData.overBump })}
           />
-        
-        <ThemedText style={styles.label}>Intake:</ThemedText>
+
+          <ThemedText style={styles.label}>Intake:</ThemedText>
           <CheckboxGroup
             options={intakeLocationsOptions}
             selectedValues={scoutingData.intakeLocations}
             onToggle={(option) => handleMultiSelect('intakeLocations', option)}
           />
 
-           <ThemedText style={styles.label}>Shooting Location(s):</ThemedText>
+          <ThemedText style={styles.label}>Shooting Location(s):</ThemedText>
           <TextInput
             placeholder="e.g., Against Hub, From Trench"
             value={scoutingData.shootLocationAuto}
-            onChangeText={(input) =>
-              setScoutingData({ ...scoutingData, shootLocationAuto: input})
-            }
+            onChangeText={(input) => setScoutingData({ ...scoutingData, shootLocationAuto: input })}
             style={styles.input}
           />
 
@@ -382,9 +340,8 @@ export default function HomeScreen() {
             style={styles.input}
           />
 
-        <ThemedText style={styles.titleContainer}>Teleop</ThemedText>
+          <ThemedText style={styles.titleContainer}>Teleop</ThemedText>
 
-        {/* TELEOP INPUTS */}
           <ThemedText style={styles.label}>Shooter Speed Scale (1-5):</ThemedText>
           <CheckboxGroup
             options={[1, 2, 3, 4, 5].map(String)}
@@ -403,19 +360,17 @@ export default function HomeScreen() {
           <TextInput
             placeholder="e.g., Against Hub, From Trench"
             value={scoutingData.shootingLocationTeleop}
-            onChangeText={(input) =>
-              setScoutingData({ ...scoutingData, shootingLocationTeleop: input, shootingLocationTeleop: input })
-            }
+            onChangeText={(input) => setScoutingData({ ...scoutingData, shootingLocationTeleop: input })}
             style={styles.input}
           />
 
-        <ThemedText style={styles.label}>Dead?</ThemedText>
+          <ThemedText style={styles.label}>Dead?</ThemedText>
           <CheckboxGroup
             options={['Yes']}
             selectedValues={scoutingData.teleopMortality ? ['Yes'] : []}
             onToggle={() => setScoutingData({ ...scoutingData, teleopMortality: !scoutingData.teleopMortality })}
           />
-          
+
           <ThemedText style={styles.label}>Bump:</ThemedText>
           <CheckboxGroup
             options={['Yes']}
@@ -445,9 +400,8 @@ export default function HomeScreen() {
             style={styles.input}
           />
 
-        <ThemedText style={styles.titleContainer}>End Game</ThemedText>
+          <ThemedText style={styles.titleContainer}>End Game</ThemedText>
 
-            {/* END GAME */}
           <ThemedText style={styles.label}>Climb?:</ThemedText>
           <CheckboxGroup
             options={finalClimbOptions}
@@ -471,7 +425,7 @@ export default function HomeScreen() {
             onToggle={(option) => handleSingleSelect('defenseScale', parseInt(option))}
           />
 
-       <ThemedText style={styles.label}>Penalty Points:</ThemedText>
+          <ThemedText style={styles.label}>Penalty Points:</ThemedText>
           <TextInput
             keyboardType="numeric"
             value={scoutingData.penaltyPoints.toString()}
@@ -479,15 +433,13 @@ export default function HomeScreen() {
             style={styles.input}
           />
 
-
-        <ThemedText style={styles.label}>Penalty?:</ThemedText>
+          <ThemedText style={styles.label}>Penalty?:</ThemedText>
           <TextInput
-          placeholder='Indicate reason for penalty'
+            placeholder='Indicate reason for penalty'
             value={scoutingData.penaltyNotes}
             onChangeText={(input) => setScoutingData({ ...scoutingData, penaltyNotes: input })}
             style={styles.input}
           />
-
 
           <ThemedText style={styles.label}>Any Final Notes?:</ThemedText>
           <TextInput
@@ -497,9 +449,6 @@ export default function HomeScreen() {
             style={styles.input}
           />
 
- 
-
-          {/* Submit & QR */}
           <Button title="Submit" color="purple" onPress={handleSubmit} />
 
           {showQRCSV && submittedTextCSV !== '' && (
@@ -512,7 +461,6 @@ export default function HomeScreen() {
           <ThemedText style={{ marginTop: 20, color: '#000' }}>You submitted: {submittedTextCSV}</ThemedText>
 
           <Button title="Clear" color="purple" onPress={handleClear} />
-
 
         </ThemedView>
       </SafeAreaView>
