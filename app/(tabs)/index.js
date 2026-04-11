@@ -1,10 +1,27 @@
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import {
+  MATCH_SCOUTING_FIELD_ORDER,
+  buildMatchSheetAppendPayload,
+  escapeCsvCell,
+  submitMatchScoutingToSheet,
+} from '@/lib/googleSheets';
+import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { useState, useEffect } from 'react';
-import { Button, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Button, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
+
+const extra =
+  Constants.expoConfig?.extra ??
+  Constants.manifest2?.extra ??
+  (Constants.manifest && typeof Constants.manifest === 'object' ? Constants.manifest.extra : null) ??
+  {};
+const GOOGLE_SCRIPT_URL =
+  extra.googleScriptUrl ?? process.env.EXPO_PUBLIC_GOOGLE_SCRIPT_URL ?? '';
+const SPREADSHEET_ID = extra.googleSpreadsheetId ?? process.env.EXPO_PUBLIC_GOOGLE_SPREADSHEET_ID ?? '';
+const MATCH_SHEET_NAME = extra.googleMatchSheetName ?? 'Sheet1';
 
 // Reusable CheckboxGroup
 const CheckboxGroup = ({ options, selectedValues, onToggle }) => (
@@ -37,10 +54,7 @@ const CheckboxGroup = ({ options, selectedValues, onToggle }) => (
 
 export default function HomeScreen() {
 
-
-
-  const [scoutingData, setScoutingData] = useState({
-    // First program fields
+  const initialScoutingData = {
     nameOfScout: '',
     matchNumber: 0,
     alliance: [],
@@ -69,7 +83,12 @@ export default function HomeScreen() {
     intakeLocations: [],
     penaltyPoints: 0,
     penaltyNotes: '',
-  });
+  };
+
+  const [scoutingData, setScoutingData] = useState(initialScoutingData);
+  const [submittedText, setSubmittedText] = useState('');
+  const [submittedTextCSV, setSubmittedTextCSV] = useState('');
+  const [showQRCSV, setShowQRCSV] = useState(false);
 
   useEffect(() => {
   const fetchTeam = async () => {
@@ -95,10 +114,6 @@ export default function HomeScreen() {
   fetchTeam();
 }, [scoutingData.matchNumber, scoutingData.alliance, scoutingData.position]);
 
-  const [submittedText, setSubmittedText] = useState('');
-  const [submittedTextCSV, setSubmittedTextCSV] = useState('');
-  const [showQRCSV, setShowQRCSV] = useState(false);
-
   // Options
   const allianceOptions = ['Red', 'Blue'];
   const positionOptions = ['1', '2', '3'];
@@ -112,6 +127,13 @@ export default function HomeScreen() {
   // Handlers
   const handleSingleSelect = (field, value) => {
     setScoutingData({ ...scoutingData, [field]: value });
+  };
+
+  const handleClear = () => {
+    setScoutingData(initialScoutingData);
+    setSubmittedText('');
+    setSubmittedTextCSV('');
+    setShowQRCSV(false);
   };
 
   const handleMultiSelect = (field, value) => {
@@ -155,7 +177,6 @@ export default function HomeScreen() {
     'actualClimb',
     'typeOfRobot',
     'defenseScale',
-    'penaltyPoints',
     'penaltyNotes',
     'endNotes',
   ]
@@ -176,64 +197,25 @@ export default function HomeScreen() {
   return stringValue;
 };
 
-  const handleClear = () => {
-    setScoutingData({
-      matchNumber: 0,
-      teamNumber: 0,
-      alliance: [],
-      position: [],
-      startLocation: '',
-      shooterScale: 1,
-      accuracyScale: 1,
-      defenseScale: 1,
-      shootingLocationTeleop: '',
-      shootLocationAuto: '',
-      bump: false,
-      trench: false,
-      intakeLocation: [],
-      inactivePeriod: '',
-      actualClimb: '',
-      typeOfRobot: [],
-      endNotes: '',
-      autoMortality: false,
-      teleopMortality: false,
-      underTrench: false,
-      overBump: false,
-      climbOptions: '',
-      autoPath: '',
-      autoNotes: '',
-      intakeLocations: [],
-      penaltyPoints: 0,
-      penaltyNotes: '',
-    });
-  };
-
 
   const handleSubmit = async () => {
     setSubmittedText(JSON.stringify(scoutingData));
 
-    try {
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain",
-      },
-      body: JSON.stringify(scoutingData),
-    });
-
-    const result = await response.json();
-
-    if (result.status === "success") {
-      console.log("Submitted!");
+    const payload = buildMatchSheetAppendPayload(scoutingData, SPREADSHEET_ID, MATCH_SHEET_NAME);
+    const sheetResult = await submitMatchScoutingToSheet(GOOGLE_SCRIPT_URL, payload);
+    if (sheetResult.ok) {
+      console.log('Submitted!');
+      Alert.alert('Sheet', 'Row sent to Google Sheet.');
+    } else {
+      console.error('Submission failed:', sheetResult.error);
+      Alert.alert('Sheet error', sheetResult.error);
     }
-  } catch (error) {
-    console.error("Submission failed:", error);
-  }
 
-  const values = fieldOrder.map((key) => {
-  const value = scoutingData[key];
-  const processed = Array.isArray(value) ? value.join('|') : value;
-  return escapeCSV(processed);});
+    const values = MATCH_SCOUTING_FIELD_ORDER.map((key) => {
+      const value = scoutingData[key];
+      const processed = Array.isArray(value) ? value.join('|') : value;
+      return escapeCsvCell(processed);
+    });
 
     const csv = values.join(',');
 
