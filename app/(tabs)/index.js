@@ -115,11 +115,6 @@ export default function HomeScreen() {
   fetchTeam();
 }, [scoutingData.matchNumber, scoutingData.alliance, scoutingData.position]);
 
-
-  const [submittedText, setSubmittedText] = useState('');
-  const [submittedTextCSV, setSubmittedTextCSV] = useState('');
-  const [showQRCSV, setShowQRCSV] = useState(false);
-
   // Options
   const allianceOptions = ['Red', 'Blue'];
   const positionOptions = ['1', '2', '3'];
