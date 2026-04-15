@@ -1,138 +1,36 @@
+// lib/googleSheets.ts
 
-/**
- * Match scouting row layout aligned with Google Sheets append (values as a single row).
- * Same order as CSV / QR export.
- */
 export const MATCH_SCOUTING_FIELD_ORDER = [
   'nameOfScout',
   'matchNumber',
+  'alliance',
+  'position',
   'teamNumber',
   'startLocation',
-  'autoMortality',
-  'underTrench',
-  'overBump',
-  'intakeLocations',
-  'shootLocationAuto',
-  'climbOptions',
-  'autoPath',
-  'autoNotes',
   'shooterScale',
   'accuracyScale',
+  'defenseScale',
   'shootingLocationTeleop',
-  'teleopMortality',
+  'shootLocationAuto',
   'bump',
   'trench',
   'intakeLocation',
   'inactivePeriod',
   'actualClimb',
   'typeOfRobot',
-  'defenseScale',
+  'endNotes',
+  'autoMortality',
+  'teleopMortality',
+  'underTrench',
+  'overBump',
+  'climbOptions',
+  'autoPath',
+  'autoNotes',
+  'intakeLocations',
   'penaltyPoints',
   'penaltyNotes',
-  'endNotes',
-] as const;
+];
 
-export type MatchScoutingField = (typeof MATCH_SCOUTING_FIELD_ORDER)[number];
-
-export type MatchScoutingData = Partial<
-  Record<MatchScoutingField, string | number | boolean | string[]>
->;
-
-/** Escape a single CSV cell (same rules as QR CSV line). */
-export function escapeCsvCell(value: unknown): string {
-  if (value === null || value === undefined) return '';
-  let stringValue = String(value);
-  stringValue = stringValue.replace(/"/g, '""');
-  if (/[",\n]/.test(stringValue)) {
-    stringValue = `"${stringValue}"`;
-  }
-  return stringValue;
-}
-
-/** One row for Sheets: each column is a string; arrays joined with | */
-export function formatMatchRowValues(data: Partial<MatchScoutingData>): string[] {
-  return MATCH_SCOUTING_FIELD_ORDER.map((key) => {
-    const value = data[key];
-    const processed = Array.isArray(value) ? value.join('|') : value;
-    return processed === null || processed === undefined ? '' : String(processed);
-  });
-}
-
-/**
- * POST body: scouting fields at top level (legacy scripts), plus
- * `row` / `headers` / spreadsheet ids for Sheets-style append (same shape as API values).
- */
-export type SheetAppendPayload = Partial<MatchScoutingData> & {
-  spreadsheetId: string;
-  sheetName: string;
-  headers: readonly string[];
-  row: string[];
-  scoutingData: Partial<MatchScoutingData>;
-};
-
-export function buildMatchSheetAppendPayload(
-  data: Partial<MatchScoutingData>,
-  spreadsheetId: string,
-  sheetName: string
-): SheetAppendPayload {
-  return {
-    ...data,
-    spreadsheetId,
-    sheetName,
-    headers: [...MATCH_SCOUTING_FIELD_ORDER],
-    row: formatMatchRowValues(data),
-    scoutingData: data,
-  };
-}
-
-export type SubmitToSheetResult =
-  | { ok: true; status?: number }
-  | { ok: false; error: string };
-
-/**
- * POST structured row to a Google Apps Script web app (or any endpoint that writes to Sheets).
- * Script should read JSON and append `row` to the sheet identified by spreadsheetId / sheetName.
- */
-export async function submitMatchScoutingToSheet(
-  webAppUrl: string,
-  payload: SheetAppendPayload
-): Promise<SubmitToSheetResult> {
-  if (!webAppUrl?.trim()) {
-    return { ok: false, error: 'Missing Google web app URL (set extra.googleScriptUrl in app.json).' };
-  }
-  try {
-    // Use text/plain (not application/json) so the browser sends a "simple" request.
-    // JSON + application/json triggers a CORS preflight that Google Apps Script web apps
-    // do not answer, so fetch fails on web. The script still reads e.postData.contents as JSON.
-    const response = await fetch(webAppUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
-      body: JSON.stringify(payload),
-    });
-    const text = await response.text();
-    let parsed: { status?: string } | null = null;
-    try {
-      parsed = text ? (JSON.parse(text) as { status?: string }) : null;
-    } catch {
-      /* Apps Script may return plain text */
-    }
-    if (!response.ok) {
-      return { ok: false, error: `HTTP ${response.status}: ${text.slice(0, 200)}` };
-    }
-    if (parsed?.status === 'error') {
-      return { ok: false, error: text.slice(0, 200) };
-    }
-    return { ok: true, status: response.status };
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    return { ok: false, error: message };
-  }
-}
-
-
-// ── Pit Scouting ──────────────────────────────────────────────────────────────
 export const PIT_SCOUTING_FIELD_ORDER = [
   'teamNumber',
   'sizeOfHopper',
@@ -143,67 +41,68 @@ export const PIT_SCOUTING_FIELD_ORDER = [
   'travel',
   'intake',
   'pitNotes',
-] as const;
+];
 
-export type PitScoutingField = (typeof PIT_SCOUTING_FIELD_ORDER)[number];
-
-export type PitScoutingData = Partial<
-  Record<PitScoutingField, string | number | string[]>
->;
-
-export function formatPitRowValues(data: Partial<PitScoutingData>): string[] {
-  return PIT_SCOUTING_FIELD_ORDER.map((key) => {
-    const value = data[key];
-    const processed = Array.isArray(value) ? value.join('|') : value;
-    return processed === null || processed === undefined ? '' : String(processed);
-  });
+export function escapeCsvCell(value: any): string {
+  const str = String(value ?? '');
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
 }
 
-export type PitSheetAppendPayload = Partial<PitScoutingData> & {
-  spreadsheetId: string;
-  sheetName: string;
-  headers: readonly string[];
-  row: string[];
-  scoutingData: Partial<PitScoutingData>;
-};
-
-export function buildPitSheetAppendPayload(
-  data: Partial<PitScoutingData>,
+export function buildMatchSheetAppendPayload(
+  data: Record<string, any>,
   spreadsheetId: string,
   sheetName: string
-): PitSheetAppendPayload {
-  return {
-    ...data,
-    spreadsheetId,
-    sheetName,
-    headers: [...PIT_SCOUTING_FIELD_ORDER],
-    row: formatPitRowValues(data),
-    scoutingData: data,
-  };
+) {
+  const row = MATCH_SCOUTING_FIELD_ORDER.map((key) => {
+    const value = data[key];
+    return Array.isArray(value) ? value.join('|') : value;
+  });
+  return { spreadsheetId, sheetName, row };
 }
 
-export async function submitPitScoutingToSheet(
-  webAppUrl: string,
-  payload: PitSheetAppendPayload
-): Promise<SubmitToSheetResult> {
-  if (!webAppUrl?.trim()) {
-    return { ok: false, error: 'Missing Google web app URL (set extra.googleScriptUrl in app.json).' };
-  }
+export function buildPitSheetAppendPayload(
+  data: Record<string, any>,
+  spreadsheetId: string,
+  sheetName: string
+) {
+  const row = PIT_SCOUTING_FIELD_ORDER.map((key) => {
+    const value = data[key];
+    return Array.isArray(value) ? value.join('|') : value;
+  });
+  return { spreadsheetId, sheetName, row };
+}
+
+async function postToSheet(url: string, payload: object): Promise<{ ok: boolean; error?: string }> {
   try {
-    const response = await fetch(webAppUrl, {
+    const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      // text/plain avoids a CORS preflight — Apps Script ignores Content-Type anyway
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify(payload),
     });
-    const text = await response.text();
-    let parsed: { status?: string } | null = null;
-    try {
-      parsed = text ? (JSON.parse(text) as { status?: string }) : null;
-    } catch { /* plain text fallback */ }
-    if (!response.ok) return { ok: false, error: `HTTP ${response.status}: ${text.slice(0, 200)}` };
-    if (parsed?.status === 'error') return { ok: false, error: text.slice(0, 200) };
-    return { ok: true, status: response.status };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+
+    if (!response.ok) {
+      return { ok: false, error: `HTTP ${response.status}` };
+    }
+
+    const result = await response.json();
+    if (result.status !== 'ok') {
+      return { ok: false, error: result.message ?? 'Unknown error' };
+    }
+
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: err.message ?? 'Network error' };
   }
+}
+
+export function submitMatchScoutingToSheet(url: string, payload: object) {
+  return postToSheet(url, payload);
+}
+
+export function submitPitScoutingToSheet(url: string, payload: object) {
+  return postToSheet(url, payload);
 }
