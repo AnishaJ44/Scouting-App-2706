@@ -27,6 +27,7 @@ export const MATCH_SCOUTING_FIELD_ORDER = [
   'actualClimb',
   'typeOfRobot',
   'defenseScale',
+  'penaltyPoints',
   'penaltyNotes',
   'endNotes',
 ] as const;
@@ -127,5 +128,82 @@ export async function submitMatchScoutingToSheet(
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     return { ok: false, error: message };
+  }
+}
+
+
+// ── Pit Scouting ──────────────────────────────────────────────────────────────
+export const PIT_SCOUTING_FIELD_ORDER = [
+  'teamNumber',
+  'sizeOfHopper',
+  'typeOfShooter',
+  'driveTrain',
+  'possibleClimbs',
+  'possibleShootingLocations',
+  'travel',
+  'intake',
+  'pitNotes',
+] as const;
+
+export type PitScoutingField = (typeof PIT_SCOUTING_FIELD_ORDER)[number];
+
+export type PitScoutingData = Partial<
+  Record<PitScoutingField, string | number | string[]>
+>;
+
+export function formatPitRowValues(data: Partial<PitScoutingData>): string[] {
+  return PIT_SCOUTING_FIELD_ORDER.map((key) => {
+    const value = data[key];
+    const processed = Array.isArray(value) ? value.join('|') : value;
+    return processed === null || processed === undefined ? '' : String(processed);
+  });
+}
+
+export type PitSheetAppendPayload = Partial<PitScoutingData> & {
+  spreadsheetId: string;
+  sheetName: string;
+  headers: readonly string[];
+  row: string[];
+  scoutingData: Partial<PitScoutingData>;
+};
+
+export function buildPitSheetAppendPayload(
+  data: Partial<PitScoutingData>,
+  spreadsheetId: string,
+  sheetName: string
+): PitSheetAppendPayload {
+  return {
+    ...data,
+    spreadsheetId,
+    sheetName,
+    headers: [...PIT_SCOUTING_FIELD_ORDER],
+    row: formatPitRowValues(data),
+    scoutingData: data,
+  };
+}
+
+export async function submitPitScoutingToSheet(
+  webAppUrl: string,
+  payload: PitSheetAppendPayload
+): Promise<SubmitToSheetResult> {
+  if (!webAppUrl?.trim()) {
+    return { ok: false, error: 'Missing Google web app URL (set extra.googleScriptUrl in app.json).' };
+  }
+  try {
+    const response = await fetch(webAppUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+    });
+    const text = await response.text();
+    let parsed: { status?: string } | null = null;
+    try {
+      parsed = text ? (JSON.parse(text) as { status?: string }) : null;
+    } catch { /* plain text fallback */ }
+    if (!response.ok) return { ok: false, error: `HTTP ${response.status}: ${text.slice(0, 200)}` };
+    if (parsed?.status === 'error') return { ok: false, error: text.slice(0, 200) };
+    return { ok: true, status: response.status };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }

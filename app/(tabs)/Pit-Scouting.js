@@ -1,20 +1,36 @@
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { Button, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Button, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import {
+  PIT_SCOUTING_FIELD_ORDER,
+  buildPitSheetAppendPayload,
+  escapeCsvCell,
+  submitPitScoutingToSheet,
+} from '@/lib/googleSheets';
 
+const extra =
+  Constants.expoConfig?.extra ??
+  Constants.manifest2?.extra ??
+  (Constants.manifest && typeof Constants.manifest === 'object' ? Constants.manifest.extra : null) ??
+  {};
+const GOOGLE_SCRIPT_URL =
+  extra.googleScriptUrl ?? process.env.EXPO_PUBLIC_GOOGLE_SCRIPT_URL ?? '';
+const SPREADSHEET_ID =
+  extra.googleSpreadsheetId ?? process.env.EXPO_PUBLIC_GOOGLE_SPREADSHEET_ID ?? '';
+const PIT_SHEET_NAME =
+  extra.googlePitSheetName ?? process.env.EXPO_PUBLIC_GOOGLE_PIT_SHEET_NAME ?? 'Pit Scouting';
 
-// ✅ Reusable CheckboxGroup
 const CheckboxGroup = ({ options, selectedValues, onToggle }) => (
   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginVertical: 8 }}>
     {options.map((option) => {
       const isSelected = selectedValues.includes(option);
-
       return (
         <TouchableOpacity
           key={option}
@@ -28,18 +44,14 @@ const CheckboxGroup = ({ options, selectedValues, onToggle }) => (
             backgroundColor: isSelected ? 'purple' : 'white',
           }}
         >
-          <Text style={{ color: isSelected ? 'white' : 'black' }}>
-            {option}
-          </Text>
+          <Text style={{ color: isSelected ? 'white' : 'black' }}>{option}</Text>
         </TouchableOpacity>
       );
     })}
   </View>
 );
 
-
 export default function PitScreen() {
-
   const [scoutingData, setScoutingData] = useState({
     teamNumber: 0,
     sizeOfHopper: 0,
@@ -55,7 +67,6 @@ export default function PitScreen() {
   const [submittedTextCSV, setSubmittedTextCSV] = useState('');
   const [showQRCSV, setShowQRCSV] = useState(false);
 
-  // Options
   const possibleClimbOptions = ['No Climb', 'Level 1', 'Level 2', 'Level 3'];
   const travelOptions = ['Bump', 'Trench'];
   const intakeOptions = ['Ground', 'Outpost'];
@@ -64,41 +75,33 @@ export default function PitScreen() {
     'From Trench',
     'From Corners',
     'Against Tower',
-    'Anywhere in alliance zone'
+    'Anywhere in alliance zone',
   ];
 
-  // Handlers
   const handleMultiSelect = (field, value) => {
     const current = scoutingData[field];
     const updated = current.includes(value)
       ? current.filter((item) => item !== value)
       : [...current, value];
-
     setScoutingData({ ...scoutingData, [field]: updated });
   };
 
-  // CSV ORDER
-  const fieldOrder = [
-    'teamNumber',
-    'sizeOfHopper',
-    'typeOfShooter',
-    'driveTrain',
-    'possibleClimbs',
-    'possibleShootingLocations',
-    'travel',
-    'intake',
-    'pitNotes',
-  ];
+  const handleSubmit = async () => {
+    // Submit to Google Sheet
+    const payload = buildPitSheetAppendPayload(scoutingData, SPREADSHEET_ID, PIT_SHEET_NAME);
+    const sheetResult = await submitPitScoutingToSheet(GOOGLE_SCRIPT_URL, payload);
+    if (sheetResult.ok) {
+      Alert.alert('Sheet', 'Pit scouting row sent to Google Sheet.');
+    } else {
+      Alert.alert('Sheet error', sheetResult.error);
+    }
 
-  const handleSubmit = () => {
-    const values = fieldOrder.map((key) => {
+    // Build CSV for QR code
+    const values = PIT_SCOUTING_FIELD_ORDER.map((key) => {
       const value = scoutingData[key];
-      return Array.isArray(value) ? value.join('|') : value;
+      return escapeCsvCell(Array.isArray(value) ? value.join('|') : value);
     });
-
-    const csv = values.join(',');
-
-    setSubmittedTextCSV(csv);
+    setSubmittedTextCSV(values.join(','));
     setShowQRCSV(true);
   };
 
@@ -109,20 +112,14 @@ export default function PitScreen() {
       headerImage={
         <Image
           source={require('../images/mergelogo.jpg')}
-          style={{
-            width: '100%',
-            aspectRatio: 1.5,
-            resizeMode: 'contain',
-          }}
+          style={{ width: '100%', aspectRatio: 1.5, resizeMode: 'contain' }}
         />
       }
     >
       <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-
         <ThemedView style={styles.stepContainer}>
           <ThemedText style={styles.title}>Pit-scouting</ThemedText>
 
-          {/* TEAM NUMBER */}
           <ThemedText style={styles.label}>Team Number:</ThemedText>
           <TextInput
             keyboardType="numeric"
@@ -133,7 +130,6 @@ export default function PitScreen() {
             style={styles.input}
           />
 
-          {/* HOPPER */}
           <ThemedText style={styles.label}>Size of Hopper (# of fuel it can hold):</ThemedText>
           <TextInput
             keyboardType="numeric"
@@ -144,7 +140,6 @@ export default function PitScreen() {
             style={styles.input}
           />
 
-          {/* SHOOTER */}
           <ThemedText style={styles.label}>Type of Shooter (1 for single, 2 for dual, etc.):</ThemedText>
           <TextInput
             keyboardType="numeric"
@@ -155,18 +150,14 @@ export default function PitScreen() {
             style={styles.input}
           />
 
-          {/* DRIVETRAIN */}
           <ThemedText style={styles.label}>Drivetrain:</ThemedText>
           <TextInput
             placeholder="e.g. Swerve, Tank"
             value={scoutingData.driveTrain}
-            onChangeText={(input) =>
-              setScoutingData({ ...scoutingData, driveTrain: input })
-            }
+            onChangeText={(input) => setScoutingData({ ...scoutingData, driveTrain: input })}
             style={styles.input}
           />
 
-          {/* CLIMB */}
           <ThemedText style={styles.label}>Climb:</ThemedText>
           <CheckboxGroup
             options={possibleClimbOptions}
@@ -174,7 +165,6 @@ export default function PitScreen() {
             onToggle={(option) => handleMultiSelect('possibleClimbs', option)}
           />
 
-          {/* SHOOTING */}
           <ThemedText style={styles.label}>Shooting Locations:</ThemedText>
           <CheckboxGroup
             options={shootingOptions}
@@ -182,7 +172,6 @@ export default function PitScreen() {
             onToggle={(option) => handleMultiSelect('possibleShootingLocations', option)}
           />
 
-          {/* TRAVEL */}
           <ThemedText style={styles.label}>Travel:</ThemedText>
           <CheckboxGroup
             options={travelOptions}
@@ -190,7 +179,6 @@ export default function PitScreen() {
             onToggle={(option) => handleMultiSelect('travel', option)}
           />
 
-          {/* INTAKE */}
           <ThemedText style={styles.label}>Intake:</ThemedText>
           <CheckboxGroup
             options={intakeOptions}
@@ -198,46 +186,31 @@ export default function PitScreen() {
             onToggle={(option) => handleMultiSelect('intake', option)}
           />
 
-          {/* NOTES */}
           <ThemedText style={styles.label}>Notes:</ThemedText>
           <TextInput
             value={scoutingData.pitNotes}
-            onChangeText={(input) =>
-              setScoutingData({ ...scoutingData, pitNotes: input })
-            }
+            onChangeText={(input) => setScoutingData({ ...scoutingData, pitNotes: input })}
             style={styles.input}
           />
 
-          {/* SUBMIT */}
           <Button title="Submit" color="purple" onPress={handleSubmit} />
 
-          {/* QR */}
           {showQRCSV && submittedTextCSV !== '' && (
             <View style={styles.qrContainer}>
-              <ThemedText style={{ color: '#000', marginBottom: 10 }}>
-                Scan to Export CSV
-              </ThemedText>
+              <ThemedText style={{ color: '#000', marginBottom: 10 }}>Scan to Export CSV</ThemedText>
               <QRCode value={submittedTextCSV} size={300} />
             </View>
           )}
 
-          <Text style={{ marginTop: 20, color: '#000' }}>
-            {submittedTextCSV}
-          </Text>
-
+          <Text style={{ marginTop: 20, color: '#000' }}>{submittedTextCSV}</Text>
         </ThemedView>
-
       </SafeAreaView>
     </ParallaxScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  stepContainer: {
-    padding: 20,
-    gap: 12,
-    backgroundColor: '#fff',
-  },
+  stepContainer: { padding: 20, gap: 12, backgroundColor: '#fff' },
   input: {
     height: 50,
     borderColor: 'purple',
@@ -245,11 +218,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
   },
-  label: {
-    fontWeight: 'bold',
-    color: '#000',
-    marginTop: 10,
-  },
+  label: { fontWeight: 'bold', color: '#000', marginTop: 10 },
   title: {
     fontSize: 24,
     fontWeight: 'bold',

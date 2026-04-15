@@ -21,7 +21,7 @@ const extra =
 const GOOGLE_SCRIPT_URL =
   extra.googleScriptUrl ?? process.env.EXPO_PUBLIC_GOOGLE_SCRIPT_URL ?? '';
 const SPREADSHEET_ID = extra.googleSpreadsheetId ?? process.env.EXPO_PUBLIC_GOOGLE_SPREADSHEET_ID ?? '';
-const MATCH_SHEET_NAME = extra.googleMatchSheetName ?? 'Sheet1';
+const MATCH_SHEET_NAME = extra.googleMatchSheetName ?? process.env.EXPO_PUBLIC_GOOGLE_MATCH_SHEET_NAME ?? 'Raw Data';
 
 // Reusable CheckboxGroup
 const CheckboxGroup = ({ options, selectedValues, onToggle }) => (
