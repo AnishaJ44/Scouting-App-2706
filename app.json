@@ -60,7 +60,7 @@
       "googleScriptUrl": "https://script.google.com/macros/s/AKfycbzOHkiIuOLBMwVrhyEkRZKGQQt7me0wCgAifFsubsqRPfqvcxyA3_5ljX4wUAHaDhw1Cg/exec",
       "googleSpreadsheetId": "1yn8AWzlBnvPj40UPl7VlMy9lVT4MaksyLzJSbNyjc4E",
       "googleMatchSheetName": "Raw Data",
-      "googlePitSheetName": "Pit Scouting",
+      "googlePitSheetName": "Pit Scouting Data",
       "eas": {
         "projectId": "08da1bd5-40fb-4911-abf6-b2bd6fc2fb15"
       }
