@@ -23,6 +23,14 @@ const GOOGLE_SCRIPT_URL =
 const SPREADSHEET_ID = extra.googleSpreadsheetId ?? process.env.EXPO_PUBLIC_GOOGLE_SPREADSHEET_ID ?? '';
 const MATCH_SHEET_NAME = extra.googleMatchSheetName ?? process.env.EXPO_PUBLIC_GOOGLE_MATCH_SHEET_NAME ?? 'Raw Data';
 
+const showAlert = (title, message) => {
+  if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+    window.alert(`${title}\n${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+};
+
 // Reusable CheckboxGroup
 const CheckboxGroup = ({ options, selectedValues, onToggle }) => (
   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginVertical: 8 }}>
@@ -84,66 +92,50 @@ export default function HomeScreen() {
     penaltyNotes: '',
   });
 
- // Cache the full match schedule on load (when online)
-useEffect(() => {
-  const cacheSchedule = async () => {
-    // If we already have it cached, don't re-fetch
-    if (localStorage.getItem('tba_schedule')) return;
-
-    try {
-      const eventKey = '2024nyny'; // ← your event key
-      const res = await fetch(`https://www.thebluealliance.com/api/v3/event/${eventKey}/matches`, {
-        headers: { 'X-TBA-Auth-Key': process.env.EXPO_PUBLIC_TBA_API_KEY }
-      });
-      const matches = await res.json();
-      if (Array.isArray(matches)) {
-        localStorage.setItem('tba_schedule', JSON.stringify(matches));
-        console.log('TBA schedule cached:', matches.length, 'matches');
+  // Cache the full match schedule on load (when online)
+  useEffect(() => {
+    const cacheSchedule = async () => {
+      if (localStorage.getItem('tba_schedule')) return;
+      try {
+        const eventKey = '2024nyny';
+        const res = await fetch(`https://www.thebluealliance.com/api/v3/event/${eventKey}/matches`, {
+          headers: { 'X-TBA-Auth-Key': process.env.EXPO_PUBLIC_TBA_API_KEY }
+        });
+        const matches = await res.json();
+        if (Array.isArray(matches)) {
+          localStorage.setItem('tba_schedule', JSON.stringify(matches));
+        }
+      } catch (err) {
+        // offline — will use cache next time if already populated
       }
+    };
+    cacheSchedule();
+  }, []);
+
+  // Auto-fill team number from cached schedule
+  useEffect(() => {
+    if (!scoutingData.matchNumber || !scoutingData.alliance || !scoutingData.position) return;
+    try {
+      const cached = localStorage.getItem('tba_schedule');
+      if (!cached) return;
+      const matches = JSON.parse(cached);
+      if (!Array.isArray(matches)) return;
+      const match = matches.find(
+        m => m.match_number === parseInt(scoutingData.matchNumber) && m.comp_level === 'qm'
+      );
+      if (!match) return;
+      const allianceRaw = Array.isArray(scoutingData.alliance) ? scoutingData.alliance[0] : scoutingData.alliance;
+      const alliance = allianceRaw.toLowerCase();
+      const positionRaw = Array.isArray(scoutingData.position) ? scoutingData.position[0] : scoutingData.position;
+      const positionIndex = parseInt(positionRaw) - 1;
+      if (!match.alliances[alliance]) return;
+      const teamKey = match.alliances[alliance].team_keys[positionIndex];
+      if (!teamKey) return;
+      setScoutingData(prev => ({ ...prev, teamNumber: parseInt(teamKey.replace('frc', '')) }));
     } catch (err) {
-      console.warn('Could not cache TBA schedule (offline?):', err);
+      // silently fail
     }
-  };
-
-  cacheSchedule();
-}, []); // runs once on app open
-
-// Auto-fill team number from cached schedule
-useEffect(() => {
-  if (!scoutingData.matchNumber || !scoutingData.alliance || !scoutingData.position) return;
-
-  try {
-    const cached = localStorage.getItem('tba_schedule');
-    if (!cached) return;
-
-    const matches = JSON.parse(cached);
-    if (!Array.isArray(matches)) return;
-
-    const match = matches.find(
-      m => m.match_number === parseInt(scoutingData.matchNumber) && m.comp_level === 'qm'
-    );
-    if (!match) return;
-
-    const allianceRaw = Array.isArray(scoutingData.alliance)
-      ? scoutingData.alliance[0]
-      : scoutingData.alliance;
-    const alliance = allianceRaw.toLowerCase();
-
-    const positionRaw = Array.isArray(scoutingData.position)
-      ? scoutingData.position[0]
-      : scoutingData.position;
-    const positionIndex = parseInt(positionRaw) - 1;
-
-    if (!match.alliances[alliance]) return;
-
-    const teamKey = match.alliances[alliance].team_keys[positionIndex];
-    if (!teamKey) return;
-
-    setScoutingData(prev => ({ ...prev, teamNumber: parseInt(teamKey.replace('frc', '')) }));
-  } catch (err) {
-    // silently fail
-  }
-}, [scoutingData.matchNumber, scoutingData.alliance, scoutingData.position]);
+  }, [scoutingData.matchNumber, scoutingData.alliance, scoutingData.position]);
 
   const [submittedText, setSubmittedText] = useState('');
   const [submittedTextCSV, setSubmittedTextCSV] = useState('');
@@ -175,78 +167,81 @@ useEffect(() => {
     setScoutingData({ ...scoutingData, [field]: currentItems });
   };
 
-  const handleClear = () => {
-  if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
-    // Web (Cloudflare)
-    const confirmed = window.confirm('Are you sure you want to clear all fields?');
-    if (!confirmed) return;
-    clearForm();
-  } else {
-    // Native (Android/iOS)
-    Alert.alert(
-      'Clear Form',
-      'Are you sure you want to clear all fields?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear', style: 'destructive', onPress: clearForm },
-      ]
-    );
-  }
-};
+  const clearForm = () => {
+    setScoutingData({
+      nameOfScout: '',
+      matchNumber: 0,
+      teamNumber: 0,
+      alliance: [],
+      position: [],
+      startLocation: '',
+      shooterScale: 1,
+      accuracyScale: 1,
+      defenseScale: 1,
+      shootingLocationTeleop: '',
+      shootLocationAuto: '',
+      bump: false,
+      trench: false,
+      intakeLocation: [],
+      inactivePeriod: '',
+      actualClimb: '',
+      typeOfRobot: [],
+      endNotes: '',
+      autoMortality: false,
+      teleopMortality: false,
+      underTrench: false,
+      overBump: false,
+      climbOptions: '',
+      autoPath: '',
+      autoNotes: '',
+      intakeLocations: [],
+      penaltyPoints: 0,
+      penaltyNotes: '',
+    });
+    setSubmittedText('');
+    setSubmittedTextCSV('');
+    setShowQRCSV(false);
+  };
 
-const clearForm = () => {
-  setScoutingData({
-    nameOfScout: '',
-    matchNumber: 0,
-    teamNumber: 0,
-    alliance: [],
-    position: [],
-    startLocation: '',
-    shooterScale: 1,
-    accuracyScale: 1,
-    defenseScale: 1,
-    shootingLocationTeleop: '',
-    shootLocationAuto: '',
-    bump: false,
-    trench: false,
-    intakeLocation: [],
-    inactivePeriod: '',
-    actualClimb: '',
-    typeOfRobot: [],
-    endNotes: '',
-    autoMortality: false,
-    teleopMortality: false,
-    underTrench: false,
-    overBump: false,
-    climbOptions: '',
-    autoPath: '',
-    autoNotes: '',
-    intakeLocations: [],
-    penaltyPoints: 0,
-    penaltyNotes: '',
-  });
-  setSubmittedText('');
-  setSubmittedTextCSV('');
-  setShowQRCSV(false);
-};
+  const handleClear = () => {
+    if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+      const confirmed = window.confirm('Are you sure you want to clear all fields?');
+      if (!confirmed) return;
+      clearForm();
+    } else {
+      Alert.alert(
+        'Clear Form',
+        'Are you sure you want to clear all fields?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Clear', style: 'destructive', onPress: clearForm },
+        ]
+      );
+    }
+  };
 
   const handleSubmit = async () => {
-    setSubmittedText(JSON.stringify(scoutingData));
+    const timestamp = new Date().toLocaleTimeString('en-CA', {
+      timeZone: 'America/Toronto',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
 
-    // Submit to Google Sheet
-    const payload = buildMatchSheetAppendPayload(scoutingData, SPREADSHEET_ID, MATCH_SHEET_NAME);
+    const dataWithTimestamp = { ...scoutingData, timestamp };
+    setSubmittedText(JSON.stringify(dataWithTimestamp));
+
+    const payload = buildMatchSheetAppendPayload(dataWithTimestamp, SPREADSHEET_ID, MATCH_SHEET_NAME);
     const sheetResult = await submitMatchScoutingToSheet(GOOGLE_SCRIPT_URL, payload);
     if (sheetResult.ok) {
-      console.log('Submitted!');
-      Alert.alert('Sheet', 'Row sent to Google Sheet.');
+      showAlert('Sheet', 'Row sent to Google Sheet.');
     } else {
-      console.error('Submission failed:', sheetResult.error);
-      Alert.alert('Sheet error', sheetResult.error);
+      showAlert('Sheet error', sheetResult.error);
     }
 
-    // Build CSV for QR code using MATCH_SCOUTING_FIELD_ORDER from googleSheets lib
     const values = MATCH_SCOUTING_FIELD_ORDER.map((key) => {
-      const value = scoutingData[key];
+      const value = dataWithTimestamp[key];
       const processed = Array.isArray(value) ? value.join('|') : value;
       return escapeCsvCell(processed);
     });
