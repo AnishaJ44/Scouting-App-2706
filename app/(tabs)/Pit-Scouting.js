@@ -25,7 +25,7 @@ const GOOGLE_SCRIPT_URL =
 const SPREADSHEET_ID =
   extra.googleSpreadsheetId ?? process.env.EXPO_PUBLIC_GOOGLE_SPREADSHEET_ID ?? '';
 const PIT_SHEET_NAME =
-  extra.googlePitSheetName ?? process.env.EXPO_PUBLIC_GOOGLE_PIT_SHEET_NAME ?? 'Pit Scouting';
+  extra.googlePitSheetName ?? process.env.EXPO_PUBLIC_GOOGLE_PIT_SHEET_NAME ?? 'Pit Scouting Data';
 
 const CheckboxGroup = ({ options, selectedValues, onToggle }) => (
   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginVertical: 8 }}>
