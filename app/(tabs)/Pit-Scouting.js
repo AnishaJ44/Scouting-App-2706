@@ -104,7 +104,6 @@ export default function PitScreen() {
     });
 
     const dataWithTimestamp = { ...scoutingData, timestamp };
-    setSubmittedText(JSON.stringify(dataWithTimestamp));
 
     // Submit to Google Sheet
     const payload = buildPitSheetAppendPayload(
