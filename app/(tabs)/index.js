@@ -297,7 +297,7 @@ export default function HomeScreen() {
           <ThemedText style={styles.label}>Team Number:</ThemedText>
           <TextInput
             value={scoutingData.teamNumber.toString()}
-            editable={false}
+            editable={true}
             style={[styles.input, { backgroundColor: '#f0f0f0' }]}
           />
 
