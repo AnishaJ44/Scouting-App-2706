@@ -68,9 +68,9 @@ export default function HomeScreen() {
     position: [],
     teamNumber: 0,
     startLocation: '',
-    shooterScale: 1,
-    accuracyScale: 1,
-    defenseScale: 1,
+    shooterScale: 0,
+    accuracyScale: 0,
+    defenseScale: 0,
     shootingLocationTeleop: '',
     shootLocationAuto: '',
     bump: false,
@@ -175,9 +175,9 @@ export default function HomeScreen() {
       alliance: [],
       position: [],
       startLocation: '',
-      shooterScale: 1,
-      accuracyScale: 1,
-      defenseScale: 1,
+      shooterScale: 0,
+      accuracyScale: 0,
+      defenseScale: 0,
       shootingLocationTeleop: '',
       shootLocationAuto: '',
       bump: false,
@@ -373,16 +373,16 @@ export default function HomeScreen() {
 
           <ThemedText style={styles.titleContainer}>Teleop</ThemedText>
 
-          <ThemedText style={styles.label}>Shooter Speed Scale (1-5):</ThemedText>
+          <ThemedText style={styles.label}>Shooter Speed Scale (0 if they don't shoot):</ThemedText>
           <CheckboxGroup
-            options={[1, 2, 3, 4, 5].map(String)}
+            options={[0, 1, 2, 3, 4, 5].map(String)}
             selectedValues={[scoutingData.shooterScale.toString()]}
             onToggle={(option) => handleSingleSelect('shooterScale', parseInt(option))}
           />
 
-          <ThemedText style={styles.label}>Shooter Accuracy Scale (1-5):</ThemedText>
+          <ThemedText style={styles.label}>Shooter Accuracy Scale (0 if they don't shoot):</ThemedText>
           <CheckboxGroup
-            options={[1, 2, 3, 4, 5].map(String)}
+            options={[0, 1, 2, 3, 4, 5].map(String)}
             selectedValues={[scoutingData.accuracyScale.toString()]}
             onToggle={(option) => handleSingleSelect('accuracyScale', parseInt(option))}
           />
@@ -449,9 +449,9 @@ export default function HomeScreen() {
             onToggle={(option) => handleMultiSelect('typeOfRobot', option)}
           />
 
-          <ThemedText style={styles.label}>If they played defense, how good were they?:</ThemedText>
+          <ThemedText style={styles.label}>Defense Rating (0 if they didn't defend):</ThemedText>
           <CheckboxGroup
-            options={[1, 2, 3, 4, 5].map(String)}
+            options={[0, 1, 2, 3, 4, 5].map(String)}
             selectedValues={[scoutingData.defenseScale.toString()]}
             onToggle={(option) => handleSingleSelect('defenseScale', parseInt(option))}
           />
