@@ -30,6 +30,7 @@ export const MATCH_SCOUTING_FIELD_ORDER = [
   'penaltyPoints',
   'penaltyNotes',
   'endNotes',
+  'timestamp'
 ];
 
 export const PIT_SCOUTING_FIELD_ORDER = [
