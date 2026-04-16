@@ -159,52 +159,13 @@ export default function HomeScreen() {
   };
 
   const handleClear = () => {
-  Alert.alert(
-    'Clear Form',
-    'Are you sure you want to clear all fields?',
-    [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
-        onPress: () => {
-        setScoutingData({
-    nameOfScout: '',
-    matchNumber: 0,
-    alliance: [],
-    position: [],
-    teamNumber: 0,
-    startLocation: '',
-    shooterScale: 1,
-    accuracyScale: 1,
-    defenseScale: 1,
-    shootingLocationTeleop: '',
-    shootLocationAuto: '',
-    bump: false,
-    trench: false,
-    intakeLocation: [],
-    inactivePeriod: '',
-    actualClimb: '',
-    typeOfRobot: [],
-    endNotes: '',
-    autoMortality: false,
-    teleopMortality: false,
-    underTrench: false,
-    overBump: false,
-    climbOptions: '',
-    autoPath: '',
-    autoNotes: '',
-    intakeLocations: [],
-    penaltyPoints: 0,
-    penaltyNotes: '',
-  }); // reset to initial state
-          setSubmittedText('');
-          setSubmittedTextCSV('');
-          setShowQRCSV(false);
-        },
-      },
-    ]
-  );
+    const confirmed = window.confirm('Are you sure you want to clear all fields?');
+    if (!confirmed) return;
+
+    setScoutingData(initialScoutingData);
+    setSubmittedText('');
+    setSubmittedTextCSV('');
+    setShowQRCSV(false);
 };
 
   const handleSubmit = async () => {
