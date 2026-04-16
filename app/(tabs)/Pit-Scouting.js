@@ -105,6 +105,43 @@ export default function PitScreen() {
     setShowQRCSV(true);
   };
 
+
+    const handleClear = () => {
+  if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+    // Web (Cloudflare)
+    const confirmed = window.confirm('Are you sure you want to clear all fields?');
+    if (!confirmed) return;
+    clearForm();
+  } else {
+    // Native (Android/iOS)
+    Alert.alert(
+      'Clear Form',
+      'Are you sure you want to clear all fields?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Clear', style: 'destructive', onPress: clearForm },
+      ]
+    );
+  }
+};
+
+const clearForm = () => {
+  setScoutingData({
+    teamNumber: 0,
+    sizeOfHopper: 0,
+    typeOfShooter: 0,
+    driveTrain: '',
+    possibleClimbs: [],
+    possibleShootingLocations: [],
+    travel: [],
+    intake: [],
+    pitNotes: '',
+  });
+  setSubmittedText('');
+  setSubmittedTextCSV('');
+  setShowQRCSV(false);
+};
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ dark: '#663399' }}
@@ -203,6 +240,9 @@ export default function PitScreen() {
           )}
 
           <Text style={{ marginTop: 20, color: '#000' }}>{submittedTextCSV}</Text>
+
+          <Button title="Clear" color="purple" onPress={handleClear} />
+
         </ThemedView>
       </SafeAreaView>
     </ParallaxScrollView>
