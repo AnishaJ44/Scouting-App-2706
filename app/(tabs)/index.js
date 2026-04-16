@@ -84,49 +84,66 @@ export default function HomeScreen() {
     penaltyNotes: '',
   });
 
-  // TBA auto-fill team number (File 2's cleaner version with error handling)
-  useEffect(() => {
-    const fetchTeam = async () => {
-      if (!scoutingData.matchNumber || !scoutingData.alliance || !scoutingData.position) return;
+ // Cache the full match schedule on load (when online)
+useEffect(() => {
+  const cacheSchedule = async () => {
+    // If we already have it cached, don't re-fetch
+    if (localStorage.getItem('tba_schedule')) return;
 
-      try {
-        const eventKey = '2024nyny'; // ← change this to your event key
-        const res = await fetch(`https://www.thebluealliance.com/api/v3/event/${eventKey}/matches`, {
-          headers: { 'X-TBA-Auth-Key': process.env.EXPO_PUBLIC_TBA_API_KEY }
-        });
-
-        const matches = await res.json();
-        if (!Array.isArray(matches)) return;
-
-        const match = matches.find(
-          m => m.match_number === parseInt(scoutingData.matchNumber) && m.comp_level === 'qm'
-        );
-        if (!match) return;
-
-        const allianceRaw = Array.isArray(scoutingData.alliance)
-          ? scoutingData.alliance[0]
-          : scoutingData.alliance;
-        const alliance = allianceRaw.toLowerCase();
-
-        const positionRaw = Array.isArray(scoutingData.position)
-          ? scoutingData.position[0]
-          : scoutingData.position;
-        const positionIndex = parseInt(positionRaw) - 1;
-
-        if (!match.alliances[alliance]) return;
-
-        const teamKey = match.alliances[alliance].team_keys[positionIndex];
-        if (!teamKey) return;
-
-        const teamNumber = parseInt(teamKey.replace('frc', ''));
-        setScoutingData(prev => ({ ...prev, teamNumber }));
-      } catch (err) {
-        // silently fail
+    try {
+      const eventKey = '2024nyny'; // ← your event key
+      const res = await fetch(`https://www.thebluealliance.com/api/v3/event/${eventKey}/matches`, {
+        headers: { 'X-TBA-Auth-Key': process.env.EXPO_PUBLIC_TBA_API_KEY }
+      });
+      const matches = await res.json();
+      if (Array.isArray(matches)) {
+        localStorage.setItem('tba_schedule', JSON.stringify(matches));
+        console.log('TBA schedule cached:', matches.length, 'matches');
       }
-    };
+    } catch (err) {
+      console.warn('Could not cache TBA schedule (offline?):', err);
+    }
+  };
 
-    fetchTeam();
-  }, [scoutingData.matchNumber, scoutingData.alliance, scoutingData.position]);
+  cacheSchedule();
+}, []); // runs once on app open
+
+// Auto-fill team number from cached schedule
+useEffect(() => {
+  if (!scoutingData.matchNumber || !scoutingData.alliance || !scoutingData.position) return;
+
+  try {
+    const cached = localStorage.getItem('tba_schedule');
+    if (!cached) return;
+
+    const matches = JSON.parse(cached);
+    if (!Array.isArray(matches)) return;
+
+    const match = matches.find(
+      m => m.match_number === parseInt(scoutingData.matchNumber) && m.comp_level === 'qm'
+    );
+    if (!match) return;
+
+    const allianceRaw = Array.isArray(scoutingData.alliance)
+      ? scoutingData.alliance[0]
+      : scoutingData.alliance;
+    const alliance = allianceRaw.toLowerCase();
+
+    const positionRaw = Array.isArray(scoutingData.position)
+      ? scoutingData.position[0]
+      : scoutingData.position;
+    const positionIndex = parseInt(positionRaw) - 1;
+
+    if (!match.alliances[alliance]) return;
+
+    const teamKey = match.alliances[alliance].team_keys[positionIndex];
+    if (!teamKey) return;
+
+    setScoutingData(prev => ({ ...prev, teamNumber: parseInt(teamKey.replace('frc', '')) }));
+  } catch (err) {
+    // silently fail
+  }
+}, [scoutingData.matchNumber, scoutingData.alliance, scoutingData.position]);
 
   const [submittedText, setSubmittedText] = useState('');
   const [submittedTextCSV, setSubmittedTextCSV] = useState('');
