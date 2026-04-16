@@ -27,6 +27,14 @@ const SPREADSHEET_ID =
 const PIT_SHEET_NAME =
   extra.googlePitSheetName ?? process.env.EXPO_PUBLIC_GOOGLE_PIT_SHEET_NAME ?? 'Pit Scouting Data';
 
+const showAlert = (title, message) => {
+  if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+    window.alert(`${title}\n${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+};
+
 const CheckboxGroup = ({ options, selectedValues, onToggle }) => (
   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginVertical: 8 }}>
     {options.map((option) => {
@@ -87,38 +95,39 @@ export default function PitScreen() {
   };
 
   const handleSubmit = async () => {
-  const timestamp = new Date().toLocaleTimeString('en-CA', {
-    timeZone: 'America/Toronto',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
+    const timestamp = new Date().toLocaleTimeString('en-CA', {
+      timeZone: 'America/Toronto',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
 
-  const dataWithTimestamp = { ...scoutingData, timestamp };
+    const dataWithTimestamp = { ...scoutingData, timestamp };
+    setSubmittedText(JSON.stringify(dataWithTimestamp));
 
-  // Submit to Google Sheet
-  const payload = buildPitSheetAppendPayload(
-    dataWithTimestamp,
-    SPREADSHEET_ID,
-    PIT_SHEET_NAME
-  );
+    // Submit to Google Sheet
+    const payload = buildPitSheetAppendPayload(
+      dataWithTimestamp,
+      SPREADSHEET_ID,
+      PIT_SHEET_NAME
+    );
 
-  const sheetResult = await submitPitScoutingToSheet(GOOGLE_SCRIPT_URL, payload);
-  if (sheetResult.ok) {
-    Alert.alert('Sheet', 'Pit scouting row sent to Google Sheet.');
-  } else {
-    Alert.alert('Sheet error', sheetResult.error);
-  }
+    const sheetResult = await submitPitScoutingToSheet(GOOGLE_SCRIPT_URL, payload);
+    if (sheetResult.ok) {
+      showAlert('Sheet', 'Row sent to Google Sheet.');
+    } else {
+      showAlert('Use QR Code', sheetResult.error);
+    }
 
-  // Build CSV for QR code
-  const values = PIT_SCOUTING_FIELD_ORDER.map((key) => {
-    const value = dataWithTimestamp[key]; // 👈 IMPORTANT
-    return escapeCsvCell(Array.isArray(value) ? value.join('|') : value);
-  });
+    // Build CSV for QR code
+    const values = PIT_SCOUTING_FIELD_ORDER.map((key) => {
+      const value = dataWithTimestamp[key]; // 👈 IMPORTANT
+      return escapeCsvCell(Array.isArray(value) ? value.join('|') : value);
+    });
 
-  setSubmittedTextCSV(values.join(','));
-  setShowQRCSV(true);
+    setSubmittedTextCSV(values.join(','));
+    setShowQRCSV(true);
 };
 
     const handleClear = () => {

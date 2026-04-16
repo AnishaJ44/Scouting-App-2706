@@ -237,7 +237,7 @@ export default function HomeScreen() {
     if (sheetResult.ok) {
       showAlert('Sheet', 'Row sent to Google Sheet.');
     } else {
-      showAlert('Sheet error', sheetResult.error);
+      showAlert('Use QR Code', sheetResult.error);
     }
 
     const values = MATCH_SCOUTING_FIELD_ORDER.map((key) => {
@@ -297,7 +297,7 @@ export default function HomeScreen() {
           <ThemedText style={styles.label}>Team Number:</ThemedText>
           <TextInput
             value={scoutingData.teamNumber.toString()}
-            editable={true}
+            editable={false}
             style={[styles.input, { backgroundColor: '#f0f0f0' }]}
           />
 
