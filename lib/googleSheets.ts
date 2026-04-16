@@ -1,5 +1,6 @@
 // lib/googleSheets.ts
 
+
 export const MATCH_SCOUTING_FIELD_ORDER = [
   'nameOfScout',
   'matchNumber',
@@ -7,28 +8,28 @@ export const MATCH_SCOUTING_FIELD_ORDER = [
   'position',
   'teamNumber',
   'startLocation',
+  'autoMortality',
+  'underTrench',
+  'overBump',
+  'intakeLocations',
+  'shootLocationAuto',
+  'climbOptions',
+  'autoPath',
+  'autoNotes',
   'shooterScale',
   'accuracyScale',
-  'defenseScale',
   'shootingLocationTeleop',
-  'shootLocationAuto',
+  'teleopMortality',
   'bump',
   'trench',
   'intakeLocation',
   'inactivePeriod',
   'actualClimb',
   'typeOfRobot',
-  'endNotes',
-  'autoMortality',
-  'teleopMortality',
-  'underTrench',
-  'overBump',
-  'climbOptions',
-  'autoPath',
-  'autoNotes',
-  'intakeLocations',
+  'defenseScale',
   'penaltyPoints',
   'penaltyNotes',
+  'endNotes',
 ];
 
 export const PIT_SCOUTING_FIELD_ORDER = [
