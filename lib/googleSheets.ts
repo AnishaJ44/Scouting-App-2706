@@ -43,6 +43,7 @@ export const PIT_SCOUTING_FIELD_ORDER = [
   'travel',
   'intake',
   'pitNotes',
+  'timestamp'
 ];
 
 export function escapeCsvCell(value: any): string {

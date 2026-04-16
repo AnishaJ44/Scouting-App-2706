@@ -87,24 +87,39 @@ export default function PitScreen() {
   };
 
   const handleSubmit = async () => {
-    // Submit to Google Sheet
-    const payload = buildPitSheetAppendPayload(scoutingData, SPREADSHEET_ID, PIT_SHEET_NAME);
-    const sheetResult = await submitPitScoutingToSheet(GOOGLE_SCRIPT_URL, payload);
-    if (sheetResult.ok) {
-      Alert.alert('Sheet', 'Pit scouting row sent to Google Sheet.');
-    } else {
-      Alert.alert('Sheet error', sheetResult.error);
-    }
+  const timestamp = new Date().toLocaleTimeString('en-CA', {
+    timeZone: 'America/Toronto',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
 
-    // Build CSV for QR code
-    const values = PIT_SCOUTING_FIELD_ORDER.map((key) => {
-      const value = scoutingData[key];
-      return escapeCsvCell(Array.isArray(value) ? value.join('|') : value);
-    });
-    setSubmittedTextCSV(values.join(','));
-    setShowQRCSV(true);
-  };
+  const dataWithTimestamp = { ...scoutingData, timestamp };
 
+  // Submit to Google Sheet
+  const payload = buildPitSheetAppendPayload(
+    dataWithTimestamp,
+    SPREADSHEET_ID,
+    PIT_SHEET_NAME
+  );
+
+  const sheetResult = await submitPitScoutingToSheet(GOOGLE_SCRIPT_URL, payload);
+  if (sheetResult.ok) {
+    Alert.alert('Sheet', 'Pit scouting row sent to Google Sheet.');
+  } else {
+    Alert.alert('Sheet error', sheetResult.error);
+  }
+
+  // Build CSV for QR code
+  const values = PIT_SCOUTING_FIELD_ORDER.map((key) => {
+    const value = dataWithTimestamp[key]; // 👈 IMPORTANT
+    return escapeCsvCell(Array.isArray(value) ? value.join('|') : value);
+  });
+
+  setSubmittedTextCSV(values.join(','));
+  setShowQRCSV(true);
+};
 
     const handleClear = () => {
   if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
