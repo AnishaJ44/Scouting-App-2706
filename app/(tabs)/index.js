@@ -159,15 +159,31 @@ export default function HomeScreen() {
   };
 
   const handleClear = () => {
+  if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+    // Web (Cloudflare)
     const confirmed = window.confirm('Are you sure you want to clear all fields?');
     if (!confirmed) return;
+    clearForm();
+  } else {
+    // Native (Android/iOS)
+    Alert.alert(
+      'Clear Form',
+      'Are you sure you want to clear all fields?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Clear', style: 'destructive', onPress: clearForm },
+      ]
+    );
+  }
+};
 
-    setScoutingData({
+const clearForm = () => {
+  setScoutingData({
     nameOfScout: '',
     matchNumber: 0,
+    teamNumber: 0,
     alliance: [],
     position: [],
-    teamNumber: 0,
     startLocation: '',
     shooterScale: 1,
     accuracyScale: 1,
@@ -192,9 +208,9 @@ export default function HomeScreen() {
     penaltyPoints: 0,
     penaltyNotes: '',
   });
-    setSubmittedText('');
-    setSubmittedTextCSV('');
-    setShowQRCSV(false);
+  setSubmittedText('');
+  setSubmittedTextCSV('');
+  setShowQRCSV(false);
 };
 
   const handleSubmit = async () => {
