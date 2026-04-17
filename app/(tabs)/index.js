@@ -97,7 +97,7 @@ export default function HomeScreen() {
     const cacheSchedule = async () => {
       if (localStorage.getItem('tba_schedule')) return;
       try {
-        const eventKey = '2026oncmp';
+        const eventKey = '2026oncmp1';
         const res = await fetch(`https://www.thebluealliance.com/api/v3/event/${eventKey}/matches`, {
           headers: { 'X-TBA-Auth-Key': process.env.EXPO_PUBLIC_TBA_API_KEY }
         });
