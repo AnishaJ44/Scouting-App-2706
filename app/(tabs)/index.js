@@ -31,7 +31,6 @@ const showAlert = (title, message) => {
   }
 };
 
-// Reusable CheckboxGroup
 const CheckboxGroup = ({ options, selectedValues, onToggle }) => (
   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginVertical: 8 }}>
     {options.map((option) => {
@@ -92,10 +91,14 @@ export default function HomeScreen() {
     penaltyNotes: '',
   });
 
-  // Cache the full match schedule on load (when online)
+  // Cache the full match schedule on load, refresh if older than 1 hour
   useEffect(() => {
     const cacheSchedule = async () => {
-      if (localStorage.getItem('tba_schedule')) return;
+      const cached = localStorage.getItem('tba_schedule');
+      const cacheTime = localStorage.getItem('tba_schedule_time');
+      const oneHour = 60 * 60 * 1000;
+      if (cached && cacheTime && Date.now() - parseInt(cacheTime) < oneHour) return;
+
       try {
         const eventKey = '2026oncmp1';
         const res = await fetch(`https://www.thebluealliance.com/api/v3/event/${eventKey}/matches`, {
@@ -104,9 +107,10 @@ export default function HomeScreen() {
         const matches = await res.json();
         if (Array.isArray(matches)) {
           localStorage.setItem('tba_schedule', JSON.stringify(matches));
+          localStorage.setItem('tba_schedule_time', Date.now().toString());
         }
       } catch (err) {
-        // offline — will use cache next time if already populated
+        // offline — will use existing cache if available
       }
     };
     cacheSchedule();
@@ -141,7 +145,6 @@ export default function HomeScreen() {
   const [submittedTextCSV, setSubmittedTextCSV] = useState('');
   const [showQRCSV, setShowQRCSV] = useState(false);
 
-  // Options
   const allianceOptions = ['Red', 'Blue'];
   const positionOptions = ['1', '2', '3'];
   const startLocationOptions = ['At Hub', 'Depot Side Trench', 'Outpost Side Trench', 'Depot Side Bump', 'Outpost Side Bump'];
@@ -151,7 +154,6 @@ export default function HomeScreen() {
   const finalClimbOptions = ['No Climb', 'Attempted Climb but Failed', 'Level 1', 'Level 2', 'Level 3'];
   const climbOptions = ['Did Not Attempt', 'Attempted Climb but Failed', 'Climb Succesful'];
 
-  // Handlers
   const handleSingleSelect = (field, value) => {
     setScoutingData({ ...scoutingData, [field]: value });
   };
